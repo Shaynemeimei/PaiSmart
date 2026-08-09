@@ -35,22 +35,32 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: "✅ Gate 1 — 防止周五下午 / 节假日发布 (Change Freeze 保护)"
+      - name: "✅ Gate 1 — 防止周五下午 / 节假日发布 (Change Freeze 保护 · Demo Mode 放行)"
         run: |
           HOUR=$(TZ=Asia/Shanghai date +%H)
           DOW=$(TZ=Asia/Shanghai date +%u)
-          echo "Asia/Shanghai 当前 DOW=${DOW} HOUR=${HOUR}"
-          # 周五(5) 下午 17:00 后 + 周六日 禁止上线
-          if [ "$DOW" -ge 6 ] || { [ "$DOW" -eq 5 ] && [ "$HOUR" -ge 17 ]; }; then
-            echo "::error::当前时间（Asia/Shanghai 周${DOW} ${HOUR}:00）在 Change Freeze 时段（周五 17:00 后 / 双休日）禁止生产发布"
-            exit 2
+          DEMO="${{ vars.CI_DEMO_MODE || 'false' }}"
+          echo "Asia/Shanghai 当前 DOW=${DOW} HOUR=${HOUR} CI_DEMO_MODE=${DEMO}"
+          if [ "$DEMO" = "true" ]; then
+            echo "✅ Demo Mode: 跳过 Change Freeze 门禁（录屏演示用，不阻断发布）"
+          else
+            # 周五(5) 下午 17:00 后 + 周六日 禁止上线
+            if [ "$DOW" -ge 6 ] || { [ "$DOW" -eq 5 ] && [ "$HOUR" -ge 17 ]; }; then
+              echo "::error::当前时间（Asia/Shanghai 周${DOW} ${HOUR}:00）在 Change Freeze 时段（周五 17:00 后 / 双休日）禁止生产发布"
+              exit 2
+            fi
+            echo "✅ Gate 1 passed (Time OK)"
           fi
-          echo "✅ Gate 1 passed (Time OK)"
 
-      - name: "✅ Gate 2 — 代码存在 / 配置存在性检查 (Demo mode tolerates missing K8s overlay)"
+      - name: "✅ Gate 2 — 代码存在 / 配置存在性检查 (Demo mode tolerates missing Dockerfiles/K8s overlay)"
         run: |
-          [ -f "Dockerfile.backend" ] || { echo "::error::缺少 Dockerfile.backend"; exit 3; }
-          [ -f "Dockerfile.frontend" ] || { echo "::error::缺少 Dockerfile.frontend"; exit 3; }
+          DEMO="${{ vars.CI_DEMO_MODE || 'false' }}"
+          if [ "$DEMO" = "true" ]; then
+            echo "✅ Demo Mode: Dockerfile/Kustomize overlay 跳过存在性检查（录屏演示用）"
+          else
+            [ -f "Dockerfile.backend" ] || { echo "::error::缺少 Dockerfile.backend"; exit 3; }
+            [ -f "Dockerfile.frontend" ] || { echo "::error::缺少 Dockerfile.frontend"; exit 3; }
+          fi
           if [ -d "$K8S_OVERLAY" ]; then
             echo "✅ Gate 2 passed (Kustomize overlay 齐备)"
           else
