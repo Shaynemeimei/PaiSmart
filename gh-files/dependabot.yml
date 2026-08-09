@@ -1,0 +1,132 @@
+# PaiSmart Dependabot 配置
+# 参考：https://docs.github.com/en/code-security/dependabot/dependabot-version-updates/configuration-options-for-the-dependabot.yml-file
+version: 2
+updates:
+  # ── Maven (后端) ──────────────────────────────────────
+  - package-ecosystem: "maven"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "09:00"
+      timezone: "Asia/Shanghai"
+    open-pull-requests-limit: 10
+    labels:
+      - "dependencies"
+      - "area/backend"
+      - "skip-changelog"
+    commit-message:
+      prefix: "chore(deps): "
+      include: "scope"
+    groups:
+      # Spring Boot / Spring Cloud 整组升级，避免碎片化 20 条 PR
+      spring-boot-minor:
+        patterns:
+          - "org.springframework.boot:spring-boot-starter*"
+          - "org.springframework.boot:spring-boot*"
+        update-types:
+          - "minor"
+          - "patch"
+      jackson-bom:
+        patterns:
+          - "com.fasterxml.jackson.core:jackson-*"
+          - "com.fasterxml.jackson.dataformat:jackson-*"
+          - "com.fasterxml.jackson.datatype:jackson-*"
+        update-types: ["minor", "patch"]
+      # ES / Kafka / Redis 客户端绑定
+      middleware-clients:
+        patterns:
+          - "org.springframework.data:spring-data-elasticsearch"
+          - "co.elastic.clients:elasticsearch-java"
+          - "org.springframework.kafka:spring-kafka"
+          - "redis.clients:jedis"
+          - "io.lettuce:lettuce-core"
+        update-types: ["minor", "patch"]
+    ignore:
+      # 主版本升级（3.x → 4.x 之类）单独走 RFC，不让 dependabot 瞎升级
+      - dependency-name: "org.springframework.boot:*"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "org.elasticsearch:*"
+        update-types: ["version-update:semver-major"]
+
+  # ── npm / pnpm (前端) ─────────────────────────────────
+  - package-ecosystem: "npm"
+    directory: "/frontend"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "09:00"
+      timezone: "Asia/Shanghai"
+    open-pull-requests-limit: 12
+    labels:
+      - "dependencies"
+      - "area/frontend"
+      - "skip-changelog"
+    commit-message:
+      prefix: "chore(frontend-deps): "
+      include: "scope"
+    groups:
+      vue-ecosystem:
+        patterns:
+          - "vue"
+          - "@vue/*"
+          - "vue-router"
+          - "pinia"
+          - "vite"
+          - "@vitejs/*"
+          - "typescript"
+          - "vue-tsc"
+        update-types: ["minor", "patch"]
+      ui-framework:
+        patterns:
+          - "element-plus"
+          - "@element-plus/*"
+          - "tailwindcss"
+          - "@tailwindcss/*"
+          - "postcss"
+          - "autoprefixer"
+        update-types: ["minor", "patch"]
+      lint-and-test:
+        patterns:
+          - "eslint"
+          - "@typescript-eslint/*"
+          - "prettier"
+          - "vitest"
+          - "@playwright/test"
+        update-types: ["minor", "patch"]
+    ignore:
+      # Vue 大版本由我们自己评估
+      - dependency-name: "vue"
+        update-types: ["version-update:semver-major"]
+
+  # ── Docker (GitHub Actions 容器) ─────────────────────
+  - package-ecosystem: "docker"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "09:00"
+      timezone: "Asia/Shanghai"
+    labels:
+      - "dependencies"
+      - "area/docker"
+    commit-message:
+      prefix: "chore(docker): "
+
+  # ── GitHub Actions 自身版本 ──────────────────────────
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "09:00"
+      timezone: "Asia/Shanghai"
+    labels:
+      - "dependencies"
+      - "area/ci"
+    commit-message:
+      prefix: "chore(ci): "
+    groups:
+      github-actions-pins:
+        patterns: ["*"]
+        update-types: ["minor", "patch"]

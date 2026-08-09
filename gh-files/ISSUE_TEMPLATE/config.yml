@@ -1,0 +1,11 @@
+blank_issues_enabled: false
+contact_links:
+  - name: 📖 文档 & 部署说明
+    url: https://github.com/yizhaoqi/PaiSmart/tree/main/docs/cicd/README.md
+    about: 先看 CI/CD 文档 FAQ，80% 的问题都有解。
+  - name: 💬 工程化 / 架构讨论
+    url: https://github.com/yizhaoqi/PaiSmart/discussions/categories/architecture
+    about: DDD 分层、K8s 拓扑、RAG 评测指标都来这里讨论。
+  - name: 🚨 安全漏洞（请不要公开 Issue）
+    url: mailto:security@paicoding.com
+    about: 发现安全问题（JWT、API Key、越权等）请直接邮件，我们会在 24 小时内回复。

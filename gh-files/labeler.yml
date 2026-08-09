@@ -1,0 +1,70 @@
+# PaiSmart 自动标签（actions/labeler 调用）
+# 用法：创建 .github/workflows/labeler.yml（下面附最小 YAML），PR 打开时根据路径变更自动打标签
+# 参考：https://github.com/actions/labeler
+
+area/backend:
+  - changed-files:
+      - any-glob-to-any-file:
+          - "src/**"
+          - "pom.xml"
+          - "mvnw*"
+          - "Dockerfile*backend*"
+          - "k8s/**/backend/**"
+
+area/frontend:
+  - changed-files:
+      - any-glob-to-any-file:
+          - "frontend/**"
+          - "!frontend/README.md"
+          - "Dockerfile*frontend*"
+          - "k8s/**/frontend/**"
+
+area/ci:
+  - changed-files:
+      - any-glob-to-any-file:
+          - ".github/workflows/**"
+          - ".github/dependabot.yml"
+          - ".github/labeler.yml"
+          - "scripts/cicd-one-shot-demo.sh"
+          - "Makefile"
+
+area/k8s:
+  - changed-files:
+      - any-glob-to-any-file:
+          - "k8s/**"
+          - "deploy/**"
+          - "helm/**"
+
+area/docs:
+  - changed-files:
+      - any-glob-to-any-file:
+          - "docs/**"
+          - "README.md"
+          - "AGENTS.md"
+          - "CLAUDE.md"
+          - "*.md"
+
+area/security:
+  - changed-files:
+      - any-glob-to-any-file:
+          - "**/security/**"
+          - "**/auth/**"
+          - "**/Jwt*.java"
+          - "**/PasswordUtil*.java"
+          - "**/RBAC*.java"
+
+area/observability:
+  - changed-files:
+      - any-glob-to-any-file:
+          - "**/actuator/**"
+          - "**/micrometer/**"
+          - "**/opentelemetry/**"
+          - "**/prometheus/**"
+          - "src/main/resources/application*.yml"
+
+dependencies:
+  - changed-files:
+      - any-glob-to-any-file:
+          - "pom.xml"
+          - "frontend/package.json"
+          - "frontend/pnpm-lock.yaml"

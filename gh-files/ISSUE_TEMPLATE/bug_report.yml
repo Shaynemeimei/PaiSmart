@@ -1,0 +1,88 @@
+name: 🐛 Bug 报告
+description: 提交 Bug 以帮助我们改进 PaiSmart
+title: "[Bug]: "
+labels: ["bug", "needs-triage"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        感谢提交 Bug！请尽量填完整下面的信息，方便我们复现。
+  - type: checkboxes
+    id: preflight
+    attributes:
+      label: 事前检查
+      options:
+        - label: 我已搜索过现有 Issues / Discussions，确认没有重复
+          required: true
+        - label: 我已在 `main` 最新分支上复现
+          required: false
+        - label: 我已看了 `docs/cicd/README.md` 排错章节
+          required: false
+  - type: dropdown
+    id: area
+    attributes:
+      label: 问题域（限界上下文 / 模块）
+      options:
+        - Identity (登录 / JWT / RBAC)
+        - KnowledgeBase (上传 / 切块 / Embedding)
+        - Search (ES 检索 / 召回)
+        - Chat (对话 / SSE / WebSocket)
+        - Billing (Token / 套餐 / 乐观锁)
+        - SysAdmin (多租户 / 管理后台)
+        - CI/CD 流水线
+        - K8s / DevOps
+        - 可观测性 (Actuator / OTel / Prometheus)
+        - 其他（请在描述里写清楚）
+      multiple: false
+    validations:
+      required: true
+  - type: dropdown
+    id: severity
+    attributes:
+      label: 严重程度
+      options:
+        - P0 - 线上事故（数据丢失 / 不可用 / 安全漏洞）
+        - P1 - 主流程阻断（登录失败 / 聊天无响应 / 文件上传失败）
+        - P2 - 功能异常但有 workaround
+        - P3 - 视觉 / UI 瑕疵
+        - P4 - 文档 / 拼写 / 小优化
+    validations:
+      required: true
+  - type: textarea
+    id: reproduce
+    attributes:
+      label: 复现步骤（Steps to reproduce）
+      description: "例如：1. 登录 admin/admin123 2. 进入知识库 Tab 3. 上传 1GB PDF 4. 观察进度条停在 99%"
+      placeholder: |
+        1.
+        2.
+        3.
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: 期望行为（Expected）
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: 实际行为（Actual / 错误日志 / 截图）
+      description: 有错误栈请贴完整 stack trace（后端）或 DevTools Console + Network 截图（前端）
+      render: shell
+    validations:
+      required: true
+  - type: input
+    id: env
+    attributes:
+      label: 环境信息
+      placeholder: "e.g. macOS 14 + Spring Boot 3.4.2 + MySQL 8.0.35 + Chrome 128 / K8s ACK 1.28"
+    validations:
+      required: false
+  - type: textarea
+    id: extra
+    attributes:
+      label: 补充信息（可选）
+    validations:
+      required: false

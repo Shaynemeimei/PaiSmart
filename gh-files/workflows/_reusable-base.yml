@@ -1,0 +1,88 @@
+# ════════════════════════════════════════════════════════════
+# Reusable Workflow — 前后端共用 Build + Trivy FS Scan 基础底座
+# 避免 backend-ci / frontend-ci 重复写 steps
+# ════════════════════════════════════════════════════════════
+name: Reusable — Common CI Base (Maven/pnpm + Trivy FS + SARIF upload)
+
+on:
+  workflow_call:
+    inputs:
+      target:
+        description: "backend | frontend | full"
+        required: true
+        type: string
+      java-version:
+        description: "JDK version (backend only)"
+        default: "17"
+        type: string
+      node-version:
+        description: "Node version (frontend only)"
+        default: "20"
+        type: string
+      run-trivy:
+        description: "是否运行 Trivy FS SARIF 扫描并上传 Code Scanning"
+        default: true
+        type: boolean
+      trivy-severity:
+        default: "CRITICAL,HIGH,MEDIUM"
+        type: string
+      trivy-exit-code:
+        default: "1"
+        type: string
+      trivy-ignore-unfixed:
+        default: true
+        type: boolean
+
+permissions:
+  contents: read
+  security-events: write   # Trivy SARIF 上传必需
+  actions: read
+
+jobs:
+  trivy-fs-scan:
+    name: "Trivy Filesystem Scan (${{ inputs.target }})"
+    runs-on: ubuntu-24.04
+    if: inputs.run-trivy
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Run Trivy filesystem vulnerability scan
+        uses: aquasecurity/trivy-action@0.36.0
+        with:
+          scan-type: "fs"
+          scan-ref: "${{ inputs.target == 'backend' && '.' || (inputs.target == 'frontend' && './frontend' || '.') }}"
+          ignore-unfixed: "${{ inputs.trivy-ignore-unfixed }}"
+          severity: "${{ inputs.trivy-severity }}"
+          format: "sarif"
+          output: "trivy-results-${{ inputs.target }}.sarif"
+          exit-code: "${{ inputs.trivy-exit-code }}"
+          hide-progress: false
+
+      - name: Publish Trivy result to Workflow Summary
+        if: always()
+        run: |
+          FILE="trivy-results-${{ inputs.target }}.sarif"
+          echo "### 🔍 Trivy FS Scan ($(date '+%Y-%m-%d %H:%M'))" >> $GITHUB_STEP_SUMMARY
+          if [[ -s "$FILE" ]]; then
+            LINES=$(jq -r '.runs[0].results | length' "$FILE" 2>/dev/null || echo 0)
+            echo "- 发现 **${LINES}** 条问题 (severity=${{ inputs.trivy-severity }})" >> $GITHUB_STEP_SUMMARY
+            echo "- SARIF Artifact: 查看本 Job 的 Artifact 面板" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "✅ 无漏洞发现" >> $GITHUB_STEP_SUMMARY
+          fi
+
+      - name: Upload SARIF to GitHub Code Scanning
+        if: always()
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: "trivy-results-${{ inputs.target }}.sarif"
+          category: "trivy-fs-${{ inputs.target }}"
+
+      - name: Upload SARIF as Artifact (评审截图 Artifact)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: "trivy-fs-${{ inputs.target }}-sarif-${{ github.sha }}"
+          path: "trivy-results-${{ inputs.target }}.sarif"
+          retention-days: 30

@@ -1,0 +1,56 @@
+name: ✨ Feature 需求
+description: 提交一个新功能 / 改进建议
+title: "[Feature]: "
+labels: ["feature", "needs-triage"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        感谢提交需求！请告诉我们为什么这个功能对你重要。
+  - type: dropdown
+    id: area
+    attributes:
+      label: 目标模块
+      options:
+        - 用户/组织/权限（Identity BC）
+        - 知识库上传/解析/切块（KnowledgeBase BC）
+        - 检索质量/召回（Search BC + RAGAS）
+        - 对话体验/流式/引用锚点（Chat BC）
+        - 计费/套餐/消耗统计（Billing BC）
+        - 管理后台/多租户（SysAdmin BC）
+        - CI/CD / 工程化
+        - K8s / DevOps / 可观测性
+        - 文档 / 演示脚本
+        - 其他
+    validations:
+      required: true
+  - type: textarea
+    id: problem
+    attributes:
+      label: 你遇到了什么问题？（User Story）
+      description: "格式：作为 [角色]，我希望 [动作]，以便于 [价值]。"
+      placeholder: "作为「QA 工程师」，我希望 CI 里自动跑 RAGAS 评测集，以便于每次合入都能看到检索质量变化趋势。"
+    validations:
+      required: true
+  - type: textarea
+    id: solution
+    attributes:
+      label: 你期望的方案 / 设计
+      description: 有流程图、截图、伪代码都可以贴。
+    validations:
+      required: false
+  - type: dropdown
+    id: priority
+    attributes:
+      label: 你觉得优先级是？
+      options:
+        - P0 - 本周必须上
+        - P1 - 下一个 Sprint
+        - P2 - 有空再搞
+        - P3 - 理想主义 / Nice to have
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: 你考虑过的替代方案（可选）
+    validations:
+      required: false
