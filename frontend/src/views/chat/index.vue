@@ -9,6 +9,7 @@ import ReferencePreviewPage from './modules/reference-preview-page.vue';
 const route = useRoute();
 const showReferencePreview = computed(() => route.query.preview === 'reference');
 const sidebarCollapsed = ref(false);
+const RELEASE_VERSION = 'v1.0.1-HOTFIX';
 </script>
 
 <template>
