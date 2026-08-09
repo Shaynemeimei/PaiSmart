@@ -152,6 +152,7 @@ jobs:
         env:
           K: ${{ secrets.KUBECONFIG_PROD_B64 }}
         run: |
+          SHORT_SHA="${GITHUB_SHA::7}" 
           MODE="${{ vars.ROLLOUT_MODE || 'gitops' }}"
           if [ -z "$K" ] || [ "$MODE" = "gitops" ]; then
             echo '### 🐤 Canary Rollout · 10% Traffic Split — PASSED' >> $GITHUB_STEP_SUMMARY
@@ -203,7 +204,7 @@ jobs:
             echo '' >> $GITHUB_STEP_SUMMARY
             echo '#### Deployment Audit Trail' >> $GITHUB_STEP_SUMMARY
             echo '' >> $GITHUB_STEP_SUMMARY
-            echo "- Run: \`${{ github.run_id }}\` · Commit: \`${{ github.sha::7 }}\` · Environment: production · Requester: @${{ github.actor }}" >> $GITHUB_STEP_SUMMARY
+            echo "- Run: \`${{ github.run_id }}\` · Commit: \`${SHORT_SHA}\` · Environment: production · Requester: @${{ github.actor }}" >> $GITHUB_STEP_SUMMARY
             echo "- Rollout timestamp (Asia/Shanghai): $(TZ=Asia/Shanghai date '+%Y-%m-%d %H:%M:%S')" >> $GITHUB_STEP_SUMMARY
           else
             echo "Real kubectl apply + rollout status check (kubeconfig available)."
