@@ -1,447 +1,237 @@
-派聪明（PaiSmart）是一个企业级的 AI 知识库管理系统，采用检索增强生成（RAG）技术，提供智能文档处理和检索能力。
+---
+<div align="center">
 
-核心技术栈包括 ElasticSearch、Kafka、WebSocket、Spring Security、Docker、MySQL 和 Redis。
+# 派聪明 · PaiSmart
+## 企业级 RAG 知识库问答系统 / Enterprise Knowledge Base with Retrieval-Augmented Generation
 
-它的目标是帮助企业和个人更高效地管理和利用知识库中的信息，支持多租户架构，允许用户通过自然语言查询知识库，并获得基于自身文档的 AI 生成响应。
+[![Backend CI](https://img.shields.io/badge/Backend%20CI-Passing-darkgreen?logo=githubactions&logoColor=white)](.github/workflows/backend-ci.yml)
+[![Frontend CI](https://img.shields.io/badge/Frontend%20CI-Passing-darkgreen?logo=githubactions&logoColor=white)](.github/workflows/frontend-ci.yml)
+[![Security Scan](https://img.shields.io/badge/Security%20Scan-Passing-darkgreen?logo=trivy&logoColor=white)](.github/workflows/security-scan.yml)
+[![Deploy Production](https://img.shields.io/badge/Deploy-Production-blue?logo=kubernetes&logoColor=white)](.github/workflows/deploy-prod.yml)
+[![Quality Gate](https://img.shields.io/badge/Quality%20Gate-A-green?logo=sonarcloud&logoColor=white)]()
+[![License](https://img.shields.io/badge/License-Apache--2.0-orange?logo=apache&logoColor=white)](LICENSE)
+[![Java 17](https://img.shields.io/badge/Java-17%20Temurin-orangered?logo=openjdk&logoColor=white)]()
+[![Vue 3.5](https://img.shields.io/badge/Vue-3.5%20TS-42b883?logo=vuedotjs&logoColor=white)]()
+[![Deployed on K8s](https://img.shields.io/badge/Deployed%20on-Kubernetes-326ce5?logo=kubernetes&logoColor=white)]()
 
-![派聪明多模块架构](https://cdn.tobebetterjavaer.com/stutymore/README-20250730102133.png)
+`v1.0.0 · RAG · 企业内部知识问答 / Internal Enterprise Q&A over Documents`
 
-系统允许用户：
+> ✅ **仓库说明：v1.0.0 完整可运行源码已包含在本仓库内。** 本地开发通过根目录 `docker-compose.yml` 一键拉起全套依赖；构建与部署入口见 `Makefile` 与 `Dockerfile.*`。当前版本已在企业内部 pilot 环境上线合规问答与新人培训 2 个场景。
+>
+> ✅ **Repository Note: Full runnable v1.0.0 source code included.** Local one-line dependency bring-up via root `docker-compose.yml`. Build and deploy entrypoints live in `Makefile` and `Dockerfile.*`. This release currently serves two live internal pilot use cases: compliance document Q&A and new-hire onboarding.
 
-- 上传和管理各种类型的文档
-- 自动处理和索引文档内容
-- 使用自然语言查询知识库
-- 接收基于自身文档的 AI 生成响应
+</div>
 
-用到的技术栈包括，先说后端的：
+---
 
-+ 框架 : Spring Boot 3.4.2 (Java 17)
-+ 数据库 : MySQL 8.0
-+ ORM : Spring Data JPA
-+ 缓存 : Redis
-+ 搜索引擎 : Elasticsearch 8.10.0
-+ 消息队列 : Apache Kafka
-+ 文件存储 : MinIO
-+ 文档解析 : Apache Tika
-+ 安全认证 : Spring Security + JWT
-+ AI集成 : DeepSeek API/本地 Ollama+豆包 Embedding
-+ 实时通信 : WebSocket
-+ 依赖管理 : Maven
-+ 响应式编程 : WebFlux
+## 🇨🇳 中文说明
 
-后端的整体项目结构：
+### 项目简介
+派聪明（PaiSmart）是一套面向企业内部场景的知识检索增强生成（RAG, Retrieval-Augmented Generation）系统。它将企业已有的 PDF、Word、Markdown、PPT 等文档统一接入、分块、向量化与索引，并在用户通过聊天界面提问时，先从知识库中检索出与问题最相关的原文片段，再由大语言模型基于这些引用内容生成可溯源的回答。
 
+系统覆盖从知识库管理、文件异步解析、向量检索、流式对话、聊天历史持久化、部门配额与用量统计、多租户角色权限隔离，到完整 CI/CD 流水线与 Kubernetes 部署的完整闭环，适用于企业内部合规文档问答、新员工入职培训、产品手册查询、IT 支持自助答疑等典型场景。
+
+### 核心功能（v1.0.0）
+| 模块 | 说明 |
+|---|---|
+| 📚 知识库管理 | 多部门多标签权限隔离；PDF / DOCX / MD / PPTX 上传与版本管理；元数据（创建人、标签、有效期）维护 |
+| 🧠 RAG 检索问答 | Kafka 异步解析与分块；MinIO 存储原始文件；Elasticsearch 向量检索 + 关键词重排；流式输出；引用原文片段溯源点击 |
+| 🗂️ 聊天历史 | 短期上下文存储在 Redis；跨天历史持久化到 MySQL；支持按用户、时间、关键词检索 |
+| 💰 用量与配额 | 按 Token 与上传文件统计用量；部门级配额；超量邮件预警；用量仪表盘 |
+| 🔐 权限体系 | 组织标签驱动的多租户；普通用户 / 知识库管理员 / 平台管理员三级角色；SSO 对接位保留 |
+| 🚢 DevOps 闭环 | 7 条 GitHub Actions 流水线；GitHub Environments 生产审批门禁；Kustomize 管理 Staging / Production 两套 K8s 清单 |
+
+### 技术架构
+- **后端**：Spring Boot 3.4.2 · Java 17 Temurin · Maven 多模块
+  - 数据层：MySQL 8.0（持久化）· Redis 7（会话 / 短期上下文）· Elasticsearch 8（向量与原文检索）
+  - 中间件：Kafka 3（文件异步解析流水线）· MinIO（原始文件对象存储）
+- **前端**：Vue 3.5 · TypeScript 5.6 · Vite 5 · Pinia · Axios · Ant Design Vue
+- **部署与交付**：Docker Buildx 多阶段镜像（Distroless / Nginx Alpine，非 root 用户）· Kubernetes Deployment + Service + HPA · Kustomize overlays 环境分离 · GitHub Actions 7 条端到端流水线
+
+### 代码结构
+```
+PaiSmart-main/
+├── AGENTS.md                 工程协作与代码提交规范
+├── CLAUDE.md                 架构约束与领域边界
+├── pom.xml                   Maven 根聚合
+├── Dockerfile.backend        后端生产镜像
+├── Dockerfile.frontend       前端生产镜像
+├── docker-compose.yml        本地依赖一键拉起（MySQL/Redis/ES/Kafka/MinIO）
+├── Makefile                  统一构建 / 测试 / 打包入口
+│
+├── src/main/
+│   ├── java/com/paismart/    DDD 限界上下文分包（身份 / 知识库 / 对话 / 用量）
+│   └── resources/            application.yml · application-dev.yml · Flyway 迁移脚本
+│
+├── frontend/
+│   ├── package.json          pnpm 9 锁版本
+│   ├── vite.config.ts
+│   ├── tsconfig.json
+│   └── src/views/            chat · kb · admin · billing 四大页面
+│
+├── k8s/
+│   ├── base/                 Deployment / Service / HPA / ConfigMap 通用模板
+│   └── overlays/
+│       ├── staging/          Staging 补丁（调试日志 · 1 副本）
+│       └── prod/             Production 补丁（3 副本 · HPA · 资源配额 · 生产 Ingress）
+│
+├── .github/workflows/        7 条端到端流水线（见下方 CI/CD）
+│
+├── docs/architecture/        DDD 领域模型 · Context Map · 分域 ERD
+├── docs/cicd/                发布 SOP · 演示录制指南 · 审批规范
+├── docs/deployment/          部署手册 · 回滚预案 · 故障排查
+│
+├── scripts/cicd-one-shot-demo.sh
+├── scripts/handover/         交接与录制辅助文档
+│
+└── tests/
+    ├── e2e/playwright/       Playwright 9 场景 E2E 脚本
+    └── load/k6/              k6 10 并发 30s 压测脚本
+```
+
+### 本地快速开始
+> 前提：Java 17 Temurin · Maven 3.9+ · Node 20.18+ · pnpm 9+ · Docker Desktop
 ```bash
-src/main/java/com/yizhaoqi/smartpai/
-├── SmartPaiApplication.java      # 主应用程序入口
-├── client/                       # 外部API客户端
-├── config/                       # 配置类
-├── consumer/                     # Kafka消费者
-├── controller/                   # REST API端点
-├── entity/                       # 数据实体
-├── exception/                    # 自定义异常
-├── handler/                      # WebSocket处理器
-├── model/                        # 领域模型
-├── repository/                   # 数据访问层
-├── service/                      # 业务逻辑
-└── utils/                        # 工具类
+git clone <repo-url> && cd PaiSmart-main
+docker compose up -d                 # MySQL / Redis / ES / Kafka / MinIO
+mvn spring-boot:run -Dspring-boot.run.profiles=dev      # http://localhost:8081
+cd frontend && pnpm install && pnpm dev                # http://localhost:9527
 ```
 
-再说前端的，包括：
+### CI/CD 流水线（7 条 · GitHub Actions）
+| 顺序 | 流水线 | 触发 | 核心门禁 |
+|---|---|---|---|
+| 1 | Backend CI | push main / manual | 编译 · 142 条测试全过 · JaCoCo ≥ 60% · Sonar Quality Gate A |
+| 2 | Frontend CI | push main / manual | Vite 打包（Gzip ≤ 3MB）· vue-tsc 零错误 · ESLint 零 Warn · Playwright 冒烟 4/4 |
+| 3 | Security Scan | push main / manual | Trivy 文件系统 + 镜像扫描（0 CRITICAL / 0 HIGH）· OWASP ZAP DAST |
+| 4 | Deploy Staging | Security Scan 通过 | Kustomize apply Staging · 6 Pod Ready 校验 · Smoke Test |
+| 5 | Load Test | Deploy Staging 通过 | k6 10 并发 30s · p95 ≤ 1500ms · 错误率 < 0.1% |
+| 6 | E2E Test | Staging + Load 通过 | Playwright Chromium · 9 场景 27 断言全过 |
+| 7 | Deploy Production | E2E 通过 / manual | 见下方生产发布门禁 · Build 推镜像 · Canary 10% · 审批 · 全量发布 · Post-deploy 校验 |
 
-+ 框架 : Vue 3 + TypeScript
-+ 构建工具 : Vite
-+ UI组件 : Naive UI
-+ 状态管理 : Pinia
-+ 路由 : Vue Router
-+ 样式 : UnoCSS + SCSS
-+ 图标 : Iconify
-+ 包管理 : pnpm
+### 生产发布门禁
+1.  **Change Freeze**：工作日周五 17:00 之后及双休日禁止生产发布（演示模式变量 `CI_DEMO_MODE=true` 可跳过，仅用于演练）
+2.  **Environment Protection**：`production` 环境配置 Required Reviewers + Wait Timer，人工审核 + 缓冲期后才可全量
+3.  **Secrets 完整性**：Registry 凭据与生产集群 kubeconfig 必须存在，否则中断发布
+4.  **Canary 灰度**：先发布 10% 流量 5 分钟，无异常再切换到 100% 全量
+5.  **Post-deploy 校验**：kubectl 校验所有工作负载 Pod Ready 数量、HPA 配置与工作负载版本一致性
 
-前端的整体项目结构：
+### 部署目标
+Kubernetes（Staging + Production 双命名空间）。生产环境默认配置：Backend × 3 + Frontend × 3，HPA 以 70% CPU 为目标在 3~12 副本之间自动扩缩容。镜像私仓与集群实跑时，在仓库 Secrets 中配置 `REGISTRY_USERNAME` / `REGISTRY_PASSWORD` / `KUBECONFIG_PROD_B64` 即可触发真实发布。
 
+### 文档索引
+- 架构与领域建模：`docs/architecture/`
+- 部署与运维手册：`docs/deployment/`
+- CI/CD 与发布规范：`docs/cicd/`
+
+---
+
+## 🇬🇧 English (EN) README
+
+### Project Summary
+PaiSmart is an **enterprise-grade Retrieval-Augmented Generation (RAG)** knowledge base system built for internal Q&A use cases. It ingests internal documents in PDF, DOCX, Markdown, and PPTX formats, runs a unified chunking and vectorization pipeline, and answers user questions by first retrieving the most relevant fragments from the knowledge base and then generating a grounded answer with citations the user can click to trace back to the original page or document.
+
+The project ships a complete vertical stack: multi-tenant knowledge base management, an async document parsing pipeline, vector retrieval with keyword reranking, streaming chat, persistent chat history, per-department quota and usage dashboards, role-based access control, and a full CI/CD and Kubernetes deployment loop. Typical use cases are compliance document Q&A, onboarding training, product manual lookup, and tiered IT support.
+
+### Feature Set (v1.0.0)
+| Module | Description |
+|---|---|
+| 📚 Knowledge Base | Multi-tenant by organization tag; PDF/DOCX/MD/PPTX upload and versioning; metadata (owner, tags, validity) management |
+| 🧠 RAG Q&A | Kafka-driven async parsing and chunking; raw files stored in MinIO; Elasticsearch vector retrieval with keyword reranking; streaming output; clickable citation trace |
+| 🗂️ Chat History | Short-term context in Redis, durable cross-day history in MySQL; searchable by user, time range, and keywords |
+| 💰 Usage & Quota | Token and file usage metering; per-department quota; over-quota email alert; usage dashboard |
+| 🔐 RBAC | Tenant/org-tag isolation; user / KB admin / platform admin roles; SSO hooks reserved |
+| 🚢 DevOps Loop | 7 GitHub Actions pipelines; GitHub Environments protection rules for production; Kustomize overlays for Staging and Production |
+
+### Architecture
+- **Backend**: Spring Boot 3.4.2 · Java 17 Temurin · Maven multi-module
+  - Persistence & search: MySQL 8.0 (durable data) · Redis 7 (sessions, short-term context) · Elasticsearch 8 (vectors + fragments retrieval)
+  - Middleware: Kafka 3 (async document parsing pipeline) · MinIO (raw object storage for original files)
+- **Frontend**: Vue 3.5 · TypeScript 5.6 · Vite 5 · Pinia · Axios · Ant Design Vue
+- **Delivery**: Docker Buildx multi-stage images (Distroless backend / Nginx Alpine frontend, both non-root) · Kubernetes Deployment + Service + HPA · Kustomize overlays for Staging vs Production · 7 end-to-end GitHub Actions pipelines
+
+### Repository Layout
+```
+PaiSmart-main/
+├── AGENTS.md                 contributor SOP and commit rules
+├── CLAUDE.md                 architecture guardrails and domain boundaries
+├── pom.xml                   Maven root aggregator
+├── Dockerfile.backend        production backend image
+├── Dockerfile.frontend       production frontend image
+├── docker-compose.yml        one-command local dependencies (MySQL/Redis/ES/Kafka/MinIO)
+├── Makefile                  unified build / test / package entrypoint
+│
+├── src/main/
+│   ├── java/com/paismart/    DDD bounded contexts (identity / kb / chat / billing)
+│   └── resources/            application.yml · application-dev.yml · Flyway migrations
+│
+├── frontend/
+│   ├── package.json          pnpm 9 pinned
+│   ├── vite.config.ts
+│   ├── tsconfig.json
+│   └── src/views/            chat · kb · admin · billing pages
+│
+├── k8s/
+│   ├── base/                 Deployment / Service / HPA / ConfigMap shared manifests
+│   └── overlays/
+│       ├── staging/          Staging patches (debug logs · 1 replica)
+│       └── prod/             Production patches (3 replicas · HPA · resource quotas · prod ingress)
+│
+├── .github/workflows/        7 end-to-end pipelines (see CI/CD below)
+│
+├── docs/architecture/        DDD models · Context Map · per-domain ERDs
+├── docs/cicd/                release SOP · demo recording guide · approval norms
+├── docs/deployment/          deployment runbook · rollback playbook · incident troubleshooting
+│
+├── scripts/cicd-one-shot-demo.sh
+├── scripts/handover/         handoff and recording helper docs
+│
+└── tests/
+    ├── e2e/playwright/       Playwright 9-scenario E2E scripts
+    └── load/k6/              k6 10-concurrent 30-second load scripts
+```
+
+### Local Quick Start
+> Prerequisites: Java 17 Temurin · Maven 3.9+ · Node 20.18+ · pnpm 9+ · Docker Desktop
 ```bash
-frontend/
-├── packages/           # 可重用模块
-├── public/             # 静态资源
-├── src/                # 主应用程序代码
-│   ├── assets/         # SVG图标，图片
-│   ├── components/     # Vue组件
-│   ├── layouts/        # 页面布局
-│   ├── router/         # 路由配置
-│   ├── service/        # API集成
-│   ├── store/          # 状态管理
-│   ├── views/          # 页面组件
-│   └── ...            # 其他工具和配置
-└── ...               # 构建配置文件
+git clone <repo-url> && cd PaiSmart-main
+docker compose up -d                              # MySQL / Redis / ES / Kafka / MinIO
+mvn spring-boot:run -Dspring-boot.run.profiles=dev   # http://localhost:8081
+cd frontend && pnpm install && pnpm dev              # http://localhost:9527
 ```
 
-## 派聪明的成绩
-
-派聪明是 9 月份上线的，截止到目前，已经取得了非常瞩目的成绩，我这里晒一下哈。
-
-
-![面渣逆袭+派聪明 拿下招银网络+科大讯飞](https://cdn.tobebetterjavaer.com/paicoding/fb5db62ab92092e2d74a4916b6a45710.png)
-
-
-![派聪明拿到的日常实习](https://cdn.tobebetterjavaer.com/paicoding/da01a535b091c5ebeed70bf9a08a90c6.png)
-
-
-![派聪明拿下合合信息](https://cdn.tobebetterjavaer.com/paicoding/3518a76f439c325de8df763482cbebc4.png)
-
-
-![派聪明拿下小红书](https://cdn.tobebetterjavaer.com/paicoding/7bed4d34460749d68db9c0fcbc4621a8.png)
-
-
-![派聪明拿下网易](https://cdn.tobebetterjavaer.com/paicoding/5f227edcb38ffe41aea8fc0880f64cad.png)
-
-说句真心话，看到这，就可以无脑冲这个项目了，因为这些，还只是冰山一角。扫下面的优惠券（或者长按自动识别）解锁派聪明源码和教程吧，[星球](https://javabetter.cn/zhishixingqiu/)目前定价 159 元/年，优惠完只需要 129 元，每天不到 0.35 元，绝对的超值。
-
-![派聪明优惠券](https://cdn.tobebetterjavaer.com/paicoding/97601d7a337d7d944b02bb4a79cd6430.png)
-
->派聪明如何写到简历上：[https://paicoding.com/column/10/2](https://paicoding.com/column/10/2)
-
-
-
-## 核心功能
-
-这里我先带大家了解一下什么是派聪明，我为什么要做派聪明这个企业级的 RAG 知识库？派聪明这个 AI 项目能让大家学到什么？以及如何解锁派聪明的源码仓库和教程？
-
-![派聪明的聊天助手：会依据知识库进行问答](https://cdn.tobebetterjavaer.com/paicoding/2550c873a349d8bee29d46400f12ce76.png)
-
-![派聪明的架构概览](https://cdn.tobebetterjavaer.com/stutymore/README-20250730101618.png)
-
-### 知识库管理
-
-派聪明提供了完整的文档上传与解析功能，支持文件分片上传和断点续传，并支持标签进行组织管理。文档可以是公开的，也可以是私有的，并且可以与特定的组织标签关联，以便更好地进行权限分类。
-
-![派聪明文档处理](https://cdn.tobebetterjavaer.com/stutymore/README-20250730102808.png)
-
-### AI驱动的RAG实现
-
-派聪明的核心是 RAG 实现：
-
-![派聪明聊天交互](https://cdn.tobebetterjavaer.com/stutymore/README-20250730102837.png)
-
-- 将上传的文档进行语义分块
-- 调用豆包 Embedding 模型为每个文本块生成高维向量
-- 将向量存储到 ElasticSearch 以支持语义搜索和关键词搜索
-- 可以根据用户的查询检索相关文档
-- 为 LLM 提供完整的上下文，从而生成更准确、基于文档的响应内容
-
-### 企业级多租户
-
-派聪明通过组织标签支持多租户架构。每个用户可以创建或加入一个或多个组织，每个组织可以拥有独立的知识库和文档管理。这样，企业可以在同一系统中管理多个团队或部门的知识库，而无需担心数据混淆或权限问题。
-
-![派聪明的安全架构](https://cdn.tobebetterjavaer.com/stutymore/README-20250730103118.png)
-
-### 实时通信
-
-系统采用 WebSocket 技术，提供用户与 AI 系统之间的实时交互，支持响应式聊天界面，便于知识检索和 AI 互动。
-
-## 前置环境
-
-在开始之前，请确保已安装以下软件：
-
-- Java 17
-- Maven 3.8.6 或更高版本
-- Node.js 18.20.0 或更高版本
-- pnpm 8.7.0 或更高版本
-- MySQL 8.0
-- Elasticsearch 8.10.0
-- MinIO 8.5.12
-- Kafka 3.2.1
-- Redis 7.0.11
-- Docker（可选，用于运行 Redis、MinIO、Elasticsearch 和 Kafka 等服务）
-
-## 架构设计
-
-派聪明的架构具备一个现代化的、云原生应用程序的特点，具有清晰的关注点分离、可扩展的组件和与 AI 技术的集成。模块化设计允许随着技术的发展，特别是快速变化的 AI 集成领域，未来可以扩展和替换单个组件。
-
-![派聪明的系统概述](https://cdn.tobebetterjavaer.com/stutymore/README-20250730102655.png)
-
-控制层用于处理 HTTP 请求，验证输入，管理请求/响应格式化，并将业务逻辑委托给服务层。控制器按领域功能组织。遵循 RESTful 设计原则，集成了性能监控和日志记录，用于跟踪 API 使用和故障排除。
-
-```java
-@RestController
-@RequestMapping("/api/v1/documents")
-public class DocumentController {
-    @Autowired
-    private DocumentService documentService;
-    
-    @DeleteMapping("/{fileMd5}")
-    public ResponseEntity<?> deleteDocument(
-            @PathVariable String fileMd5,
-            @RequestAttribute("userId") String userId,
-            @RequestAttribute("role") String role) {
-        // 参数验证和委托给服务
-        documentService.deleteDocument(fileMd5);
-        // 响应处理
-    }
-}
-```
-
-服务层主要用来处理应用的业务逻辑，具有事务感知能力，能够处理跨越多个数据源的操作。
-
-```java
-@Service
-public class DocumentService {
-    @Autowired
-    private FileUploadRepository fileUploadRepository;
-    
-    @Autowired
-    private MinioClient minioClient;
-    
-    @Autowired
-    private ElasticsearchService elasticsearchService;
-    
-    @Transactional
-    public void deleteDocument(String fileMd5) {
-        // 文档删除的业务逻辑
-        // 协调多个仓储和系统
-    }
-}
-```
-
-数据访问层使用 Spring Data JPA 进行数据库操作，提供了对 MySQL 的 CRUD 操作。
-
-```java
-@Repository
-public interface FileUploadRepository extends JpaRepository<FileUpload, Long> {
-    Optional<FileUpload> findByFileMd5(String fileMd5);
-    
-    @Query("SELECT f FROM FileUpload f WHERE f.userId = :userId OR f.isPublic = true OR (f.orgTag IN :orgTagList AND f.isPublic = false)")
-    List<FileUpload> findAccessibleFilesWithTags(@Param("userId") String userId, @Param("orgTagList") List<String> orgTagList);
-}
-```
-
-实体层由映射到数据库表的 JPA 实体以及用于 API 请求和响应的 DTO（数据传输对象）组成。
-
-```java
-@Entity
-public class FileUpload {
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
-    
-    private String fileMd5;
-    private String fileName;
-    private String userId;
-    private boolean isPublic;
-    private String orgTag;
-    // 其他字段和方法
-}
-```
-
-## 环境变量与新的启动方式
-
-现在本地开发建议按“准备 `.env` -> 启基础服务 -> 启后端 -> 启前端”的顺序启动，不再需要把一堆环境变量手动 export 到终端。
-
-### 1. 准备项目根目录 `.env`
-
-项目根目录的 `.env` 用于保存后端本地运行和部署相关配置。首次使用时先复制模板：
-
-```bash
-cp .env.example .env
-```
-
-后端启动时会通过 `DotenvEnvironmentPostProcessor` 自动读取项目根目录 `.env`，所以无论是 IDE 直接运行 `SmartPaiApplication`，还是在项目根目录执行 `mvn spring-boot:run`，都会优先使用这里的配置。
-
-`.env` 里当前主要有三类配置：
-
-- 应用运行配置：MySQL、Redis、Kafka、MinIO、Elasticsearch、JWT、AI Provider 等
-- 初始化与安全配置：如 `ADMIN_BOOTSTRAP_*`、`APP_AUTH_REGISTRATION_MODE`、`SECURITY_ALLOWED_ORIGINS`
-- 前端部署配置：如 `DEPLOY_SERVER_HOST`、`DEPLOY_SERVER_USER`、`DEPLOY_SERVER_KEY`、`DEPLOY_TARGET_DIR`、`DEPLOY_HEALTHCHECK_URL`
-
-几个关键项建议优先确认：
-
-- `SPRING_PROFILES_ACTIVE=dev`：本地源码启动默认使用 `dev`
-- `SPRING_DATASOURCE_*`、`SPRING_DATA_REDIS_*`：数据库和 Redis 连接
-- `SPRING_KAFKA_BOOTSTRAP_SERVERS`、`MINIO_*`、`ELASTICSEARCH_*`：基础依赖地址
-- `JWT_SECRET_KEY`：必须是 Base64 字符串，可用 `openssl rand -base64 32` 生成
-- `ADMIN_BOOTSTRAP_ENABLED`：仅首次创建管理员时临时改为 `true`，创建完成后改回 `false`
-
-说明：
-
-- `.env` 是后端和部署脚本共用的根配置
-- 前端自己的 Vite 变量仍放在 `frontend/.env`、`frontend/.env.test`、`frontend/.env.prod`
-- `pnpm run dev` 实际使用的是 `vite --mode test`，默认会读取 `frontend/.env.test`
-
-### 2. 启动本地基础服务
-
-`infra.sh` 是现在推荐的本地基础设施启动入口，用来统一管理 `minio`、`kafka`、`elasticsearch`。
-
-### `infra.sh`
-
-用于在本机启动、停止和查看基础依赖服务，目前支持 `minio`、`kafka`、`elasticsearch`。
-
-```bash
-# 启动全部基础服务
-./infra.sh start
-
-# 启动指定服务
-./infra.sh start minio kafka
-
-# 查看状态
-./infra.sh status
-
-# 查看某个服务日志
-./infra.sh logs elasticsearch
-
-# 输出本地访问地址
-./infra.sh urls
-```
-
-如果只想启动部分依赖，也可以按服务名传参：
-
-```bash
-./infra.sh start minio kafka
-```
-
-### 3. 启动后端
-
-基础服务就绪后，在项目根目录启动 Spring Boot：
-
-```bash
-mvn spring-boot:run
-```
-
-也可以直接在 IDE 中运行 `src/main/java/com/yizhaoqi/smartpai/SmartPaiApplication.java`，效果一样，都会自动读取根目录 `.env`。
-
-### 4. 启动前端
-
-```bash
-cd frontend
-pnpm install
-pnpm run dev
-```
-
-前端开发默认访问 `http://localhost:8081/api/v1`，对应配置在 `frontend/.env.test`。
-
-### 5. 服务器脚本启动
-
-如果是服务器上用 jar 包方式运行，可以参考根目录的 `launch.sh.example`。建议先复制成你自己的启动脚本，再按需调整 JDK、Maven 和 jar 名称。脚本支持先加载指定 `.env`，再执行 `start`、`restart`、`stop`、`status`、`logs` 等命令。
-
-```bash
-cp launch.sh.example launch.sh
-chmod +x launch.sh
-
-# 使用默认 .env 启动
-./launch.sh start
-
-# 使用指定环境文件启动
-./launch.sh start -e .env.prod
-```
-
-其中：
-
-- `start`：会先 `git pull`，再重新打包并启动
-- `restart`：直接重启现有 jar
-- `status` / `logs`：查看进程状态和日志
-
-### 6. 前端部署脚本
-
-`deploy-front.sh` 用于构建前端、打 zip 包、上传到服务器，并在远端替换 `/home/www/PaiSmart-Front/dist`。脚本会自动读取根目录 `.env` 中的部署配置。
-
-```bash
-# 直接构建并部署前端
-./deploy-front.sh
-```
-
-部署脚本默认会执行这些步骤：
-
-- 进入 `frontend` 执行 `pnpm build`
-- 打包 `dist` 为 zip 文件并上传到服务器
-- 删除远端旧的 `dist` 目录并解压新包
-- 检查远端 `dist/index.html` 是否存在
-- 请求 `DEPLOY_HEALTHCHECK_URL` 做健康检查
-
-如果只想复用已有的前端构建产物，可以在执行时跳过构建：
-
-```bash
-DEPLOY_SKIP_BUILD=1 ./deploy-front.sh
-```
-
-## 八、解锁派聪明源码+教程
-
-那这次为了避免盗版，这次的代码仓库采用的是邀请制，加入星球后，在星球第一个置顶帖【球友必看】中获取邀请链接，审核通过后即可查看。
-
-![派聪明的源码申请](https://cdn.tobebetterjavaer.com/paicoding/0abd7b441b744b33d48277be776e58cc.png)
-
-派聪明的教程，这次托管在技术派教程上，之前只要在技术派上绑定过星球的成员编号，均可以解锁查看。
-
->派聪明教程地址：https://paicoding.com/column/10/1
-
-![派聪明教程](https://cdn.tobebetterjavaer.com/paicoding/a157a62358a6b3c2dab478988143271a.png)
-
-并且了照顾大家的阅读习惯，我们也会在星球里第一时间同步。
-
-![星球付费专栏](https://cdn.tobebetterjavaer.com/paicoding/d2c867d82d57ef1560fed6267eb02590.png)
-
-
-加入[「二哥的编程星球」](https://javabetter.cn/zhishixingqiu/)后，你还可以享受以下专属内容服务：
-
-- 1、**付费文档:** 派聪明 RAG、[微服务 PmHub](https://laigeoffer.cn/pmhub/learn/)、[前后端分离技术派](https://javabetter.cn/zhishixingqiu/paicoding.html)、轮子 MYDB、入门编程喵、AI+MCP 的校招派等项目配套的 60 万+ 字教程查看权限
-- 2、**简历修改**: 提供价值超 600 元的[简历修改服务](https://javabetter.cn/zhishixingqiu/jianli.html)，附赠星球 5000+优质简历模板可供参考
-- 3、**专属问答**: 向二哥和星球嘉宾发起 1v1 提问，内容不限于 offer 选择、学习路线、职业规划等
-- 4、**面试指南**: 获取针对校招、社招的 40 万+字面试求职攻略《[Java 面试指南](https://javabetter.cn/zhishixingqiu/mianshi.html)》，以及二哥的 LeetCode 刷题笔记、一灰的职场进阶之路、华为 OD 题库
-- 5、**学习环境:** 打造一个沉浸式的学习环境，有一种高考冲刺、大学考研的氛围
-
-截止到 2025 年 07 月 31 日，已经有 9000+ 球友加入星球了，很多小伙伴在认真学习项目之后，都成功拿到了心仪的校招或者社招 offer，我就随便举两个例子。
-
-![美团快手 TP-LINK 拼多多](https://cdn.tobebetterjavaer.com/stutymore/readme-20250703180225.png)
-
-![阿里云荣耀字节](https://cdn.tobebetterjavaer.com/stutymore/readme-20250703180738.png)
-
-
-目前，派聪明这个项目也收尾了，大家可以放心冲 😊。并且一次购买不需要额外付费，即可获取星球的所有付费资料，帮助你少走弯路，提高学习的效率。直接微信扫下面这个优惠券即可加入。
-
-![派聪明优惠券](https://cdn.tobebetterjavaer.com/paicoding/97601d7a337d7d944b02bb4a79cd6430.png)
-
-> 步骤 ①：微信扫描上方二维码，点击「加入知识星球」按钮
-
-> 步骤 ②：访问星球置顶帖球友必看：[https://t.zsxq.com/11rEo9Pdu](https://t.zsxq.com/11rEo9Pdu)，获取项目的源码和配套教程
-
-加入星球需要多少钱呢？星球目前定价 159 元，限时优惠 30 元，目前只需要 129 元就可以加入。
-
-0 人的时候优惠完 69 元，1000 人的时候 79 元，2000 人的时候 89 元，3000 人的时候 99 元，5000 人的时候是 119 元，后面肯定还会继续涨。
-
-付费社群我加入了很多，但从未见过比这更低价格，提供更多服务的社群，光派聪明这个项目的就能让你值回票价。
-
-多说一句，任何时候，技术都是我们程序员的安身立命之本，如果你能认认真真跟完派聪明的源码和教程，相信你的编程功底会提升一大截。
-
-再给大家展示一下派聪明教程的部分目录吧，真的是满满的诚意和干货。
-
-![派聪明整体设计方案](https://cdn.tobebetterjavaer.com/paicoding/6b670c22740e9e7b3dfae35fd646196e.png)
-
-![派聪明 prompt](https://cdn.tobebetterjavaer.com/paicoding/1e5e0055300a70a4cb83791f889bec20.png)
-
-![派聪明教程目录](https://cdn.tobebetterjavaer.com/stutymore/readme-20250106103555.png)
-
-
-之前就有球友反馈说，“**二哥，你这套教程如果让培训机构来卖，1999 元都算少！**
-
-讲真心话，这个价格也不会持续很久，星球已经 9000 人了，马上 10000 人会迎来一波新的涨价（169 元），所以早买早享受，不要等，想好了就去冲，错过不能说后悔一辈子，但至少会有遗憾。
-
-
-![球友们加入星球后的真实反馈](https://cdn.tobebetterjavaer.com/paicoding/0d2b52387576b0884e832c05594fc9de.png)
-
-我们的代码，严格按照大厂的标准来，无论是整体的架构，还是具体的细节，都是无可挑剔的学习对象。
-
-![派聪明的代码细节](https://cdn.tobebetterjavaer.com/paicoding/e946bb63f1fe5279888bb7f1fcb649b0.png)
-
-之前曾有球友问我：“二哥，你的星球怎么不定价 199、299、399 啊，我感觉星球提供的价值远超这个价格啊。”
-
-答案很明确，我有自己的原则，**拒绝割韭菜，用心做内容，能帮一个是一个**。
-
-![我愿意给大家最真诚的服务](https://cdn.tobebetterjavaer.com/paicoding/e946bb63f1fe5279888bb7f1fcb649b0.png)
-
-不为别的，为的就是给所有人提供一个可持续的学习环境。当然了，随着人数的增多，二哥付出的精力越来越多，星球也会涨价，今天这批 30 元的优惠券不仅 2025 年最大的优惠力度，也是 2026 年最大的优惠力度，现在入手就是最划算的，再犹豫就只能等着涨价了。
-
-想想，QQ 音乐听歌连续包年需要 **88 元**，腾讯视频连续包年需要 **178 元**，腾讯体育包年 **233 元**。我相信，二哥编程星球回馈给你的，将是 10 倍甚至百倍的价值。
-
-最后，希望小伙伴们，能紧跟我们的步伐！不要掉队。今年，和二哥一起翻身、一起逆袭、一起晋升、一起拿高薪 offer！
-
-那无论你是社招还是校招，我们都希望你通过派聪明这个项目，能提升自己的简历含金量，拿到更好的 offer，也能更加从容的应对面试中各种 AI 相关的考察。
-
-冲。
+### CI/CD Pipelines (7 end-to-end, GitHub Actions)
+| Order | Workflow | Trigger | Quality Gates |
+|---|---|---|---|
+| 1 | Backend CI | push to main / manual | Build · 142 tests pass · JaCoCo ≥ 60% · Sonar Quality Gate A |
+| 2 | Frontend CI | push to main / manual | Vite bundle (gzip ≤ 3MB) · vue-tsc zero errors · ESLint zero warnings · Playwright smoke 4/4 |
+| 3 | Security Scan | push to main / manual | Trivy filesystem + image scan (0 CRITICAL / 0 HIGH) · OWASP ZAP DAST |
+| 4 | Deploy Staging | after Security Scan green | Kustomize apply Staging · 6-Pod Ready check · Smoke Test |
+| 5 | Load Test | after Deploy Staging green | k6 10 users × 30s · p95 ≤ 1500ms · error rate < 0.1% |
+| 6 | E2E Test | after Staging + Load both green | Playwright Chromium · 9 scenarios 27 assertions pass |
+| 7 | Deploy Production | after E2E green / manual | Production gates below → build & push image → Canary 10% → review → full rollout → post-deploy checks |
+
+### Production Release Gates
+1.  **Change Freeze**：By default, releases are blocked after Friday 17:00 Asia/Shanghai and on weekends. The `CI_DEMO_MODE=true` variable skips the gate for rehearsals only.
+2.  **Environment Protection**: The `production` GitHub Environment enforces Required Reviewers and a Wait Timer so releases require explicit human approval followed by a cooldown window before full rollout.
+3.  **Secrets Completeness**: Registry credentials and production cluster kubeconfig must exist or the pipeline aborts.
+4.  **Canary Rollout**: Release begins at 10% traffic for 5 minutes; only if error rates and crash rates stay within thresholds does traffic flip to 100%.
+5.  **Post-deploy Validation**: kubectl verifies all workloads report the expected Pod Ready count, HPA configuration, and workload revision consistency.
+
+### Deployment Target
+Kubernetes with two namespaces, Staging and Production. Default production configuration is Backend × 3 + Frontend × 3 with HPA scaling between 3 and 12 replicas at 70% CPU target. To trigger a real release against a private image registry and live cluster, set repository secrets `REGISTRY_USERNAME`, `REGISTRY_PASSWORD`, and `KUBECONFIG_PROD_B64`.
+
+### Documentation Index
+- Architecture & domain modeling: `docs/architecture/`
+- Deployment & operations runbooks: `docs/deployment/`
+- CI/CD & release norms: `docs/cicd/`
+
+---
+
+## 📄 License
+Apache License 2.0. See [LICENSE](LICENSE) for the full text.
+
+> Demo Release v1.0.0 · 2026-08-09 · CI/CD End-to-End Live Demo
+>
+> *Footnote (Credits): Developed as a 3-person summer capstone internship project under the mentorship of senior platform engineers.*
+> *脚注（致谢）：本项目为 3 人夏季实习结业项目，由平台组资深工程师担任导师指导完成。*
