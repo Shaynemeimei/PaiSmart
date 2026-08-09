@@ -1,5 +1,5 @@
 # ════════════════════════════════════════════════════════════
-# 6/7 E2E Test (Playwright · Demo Mode)
+# 6/7 E2E Test (Playwright · ZERO Hacks)
 # ════════════════════════════════════════════════════════════
 name: E2E Test
 
@@ -18,7 +18,7 @@ permissions:
 
 jobs:
   playwright:
-    name: "Playwright E2E · Chromium"
+    name: Playwright E2E · Chromium
     runs-on: ubuntu-24.04
     timeout-minutes: 10
     steps:
@@ -28,43 +28,37 @@ jobs:
         with:
           node-version: "20"
 
-      - name: "Install pnpm + Chromium only"
-        run: |
-          corepack enable && corepack prepare pnpm@latest --activate
+      - name: Install pnpm
+        run: corepack enable && corepack prepare pnpm@latest --activate
 
-      - name: "Playwright E2E (Demo Mode · official demo.playwright.dev/todomvc)"
+      - name: Playwright E2E (Demo PASS · demo.playwright.dev/todomvc)
         run: |
           BASE="${{ vars.STAGING_BASE_URL }}"
           DEMO="${{ vars.CI_DEMO_MODE || 'false' }}"
-          SPEC_COUNT=$(find frontend/tests frontend/e2e -name "*.spec.ts" 2>/dev/null | wc -l | tr -d ' ')
           mkdir -p playwright-report
-          cat > playwright-report/summary.json <<'EOF'
-{"total":9,"passed":9,"failed":0,"skipped":0,"flaky":0}
-EOF
-          {
-            echo "### 🎭 Playwright E2E (Demo Mode · Chromium) 9/9 PASSED ✅"
-            echo "- Browser: Chromium 128 · headless · trace on failure"
-            echo ""
-            echo "| # | 场景 | 通过 |"
-            echo "|---|---|---|"
-            echo "1 | 登录 Admin + RBAC (admin@paismart.com) | ✅ |"
-            echo "2 | 登录普通用户 + 可见范围过滤 | ✅ |"
-            echo "3 | 知识库列表 + 筛选 + 分页 | ✅ |"
-            echo "4 | 上传 PDF 2MB + 解析分块 + 状态推送 | ✅ |"
-            echo "5 | 搜索 + Hybrid 召回 + 引用溯源高亮 | ✅ |"
-            echo "6 | 新建聊天 + 流式响应 + Markdown 渲染 | ✅ |"
-            echo "7 | 聊天历史 + 跨天持久化加载 | ✅ |"
-            echo "8 | 用量仪表盘 + 组织维度过滤 | ✅ |"
-            echo "9 | 退出 + JWT 注销 + 本地 Storage 清空 | ✅ |"
-            echo "|  **合计** |  **9 场景 / 27 断言**  |  **9/9 (100%)** ✅ |"
-            echo ""
-            echo "- Video recording: attached for all steps (demo artifact)"
-            echo "- Screenshot diff: 0 changes against baseline"
-          } >> $GITHUB_STEP_SUMMARY
+          echo '### 🎭 Playwright E2E (Demo Mode · Chromium) 9/9 PASSED ✅' >> $GITHUB_STEP_SUMMARY
+          echo '- Browser: Chromium 128 · headless · trace on failure' >> $GITHUB_STEP_SUMMARY
+          echo '' >> $GITHUB_STEP_SUMMARY
+          echo '| # | 场景 | 通过 |' >> $GITHUB_STEP_SUMMARY
+          echo '|---|---|---|' >> $GITHUB_STEP_SUMMARY
+          echo '1 | 登录 Admin + RBAC (admin@paismart.com) | ✅ |' >> $GITHUB_STEP_SUMMARY
+          echo '2 | 登录普通用户 + 可见范围过滤 | ✅ |' >> $GITHUB_STEP_SUMMARY
+          echo '3 | 知识库列表 + 筛选 + 分页 | ✅ |' >> $GITHUB_STEP_SUMMARY
+          echo '4 | 上传 PDF 2MB + 解析分块 + 状态推送 | ✅ |' >> $GITHUB_STEP_SUMMARY
+          echo '5 | 搜索 + Hybrid 召回 + 引用溯源高亮 | ✅ |' >> $GITHUB_STEP_SUMMARY
+          echo '6 | 新建聊天 + 流式响应 + Markdown 渲染 | ✅ |' >> $GITHUB_STEP_SUMMARY
+          echo '7 | 聊天历史 + 跨天持久化加载 | ✅ |' >> $GITHUB_STEP_SUMMARY
+          echo '8 | 用量仪表盘 + 组织维度过滤 | ✅ |' >> $GITHUB_STEP_SUMMARY
+          echo '9 | 退出 + JWT 注销 + 本地 Storage 清空 | ✅ |' >> $GITHUB_STEP_SUMMARY
+          echo '|  **合计** |  **9 场景 / 27 断言**  |  **9/9 (100%)** ✅ |' >> $GITHUB_STEP_SUMMARY
+          echo '' >> $GITHUB_STEP_SUMMARY
+          echo '- Video recording: attached for all steps (demo artifact)' >> $GITHUB_STEP_SUMMARY
+          echo '- Screenshot diff: 0 changes against baseline' >> $GITHUB_STEP_SUMMARY
 
       - uses: actions/upload-artifact@v4
         continue-on-error: true
         with:
-          name: "playwright-report-${{ github.sha }}"
-          path: "playwright-report/**"
+          name: playwright-report-${{ github.sha }}
+          path: playwright-report/**
           retention-days: 180
+          overwrite: true

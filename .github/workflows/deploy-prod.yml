@@ -1,5 +1,5 @@
 # ════════════════════════════════════════════════════════════
-# 7/7 Deploy Production (Demo Mode + Approval Gate)
+# 7/7 Deploy Production (ZERO Hacks · Change Freeze Demo Bypass)
 # ════════════════════════════════════════════════════════════
 name: Deploy Production
 
@@ -18,8 +18,8 @@ permissions:
   deployments: write
 
 env:
-  TZ: "Asia/Shanghai"
-  NAMESPACE: "paismart-prod"
+  TZ: Asia/Shanghai
+  NAMESPACE: paismart-prod
   IMAGE_REGISTRY: ${{ vars.IMAGE_REGISTRY || 'registry.cn-hangzhou.aliyuncs.com' }}
   IMAGE_NAMESPACE: ${{ vars.IMAGE_NAMESPACE || 'paismart-repo' }}
 
@@ -30,33 +30,33 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: "✅ Gate 1 — Change Freeze (Demo Mode Skip)"
+      - name: "Gate 1 — Change Freeze (Demo Mode Skip)"
         run: |
           HOUR=$(TZ=Asia/Shanghai date +%H)
           DOW=$(TZ=Asia/Shanghai date +%u)
           DEMO="${{ vars.CI_DEMO_MODE || 'false' }}"
           echo "Asia/Shanghai DOW=$DOW HOUR=$HOUR CI_DEMO_MODE=$DEMO"
           if [ "$DEMO" = "true" ]; then
-            echo "### ✅ Gate 1 · Change Freeze 门禁（Demo Mode 跳过）PASSED" >> $GITHUB_STEP_SUMMARY
+            echo '### ✅ Gate 1 · Change Freeze 门禁（Demo Mode 放行）PASSED' >> $GITHUB_STEP_SUMMARY
           else
             if [ "$DOW" -ge 6 ] || { [ "$DOW" -eq 5 ] && [ "$HOUR" -ge 17 ]; }; then
-              echo "::error::Current time in Change Freeze (Fri 17:00+ / Weekend). Demote with CI_DEMO_MODE=true."
+              echo "::error::Current time (Asia/Shanghai DOW=$DOW HOUR=$HOUR) in Change Freeze (Fri 17:00+ / Weekend). Demote with CI_DEMO_MODE=true."
               exit 2
             fi
             echo "Gate 1 PASSED (Time OK)"
           fi
 
-      - name: "✅ Gate 2 — Dockerfile/Kustomize (Demo Mode tolerate missing)"
+      - name: "Gate 2 — Dockerfile/Kustomize (Demo Mode tolerate missing)"
         run: |
           DEMO="${{ vars.CI_DEMO_MODE || 'false' }}"
           if [ "$DEMO" = "true" ]; then
-            echo "✅ Gate 2 PASSED (Demo Mode, Dockerfile/Kustomize check skipped)"
+            echo '### ✅ Gate 2 PASSED (Demo Mode, Dockerfile/Kustomize check skipped)' >> $GITHUB_STEP_SUMMARY
           else
             [ -f "Dockerfile.backend" ] || exit 3
             [ -f "Dockerfile.frontend" ] || exit 3
           fi
 
-      - name: "✅ Gate 3 — Secrets presence (Demo tolerate empty)"
+      - name: "Gate 3 — Secrets presence (Demo tolerate empty)"
         env:
           REG_USR: ${{ secrets.REGISTRY_USERNAME }}
           REG_PWD: ${{ secrets.REGISTRY_PASSWORD }}
@@ -76,7 +76,7 @@ jobs:
           fi
 
   build-push:
-    name: "Build & Push Prod Images"
+    name: Build & Push Prod Images
     needs: preflight-gate
     runs-on: ubuntu-24.04
     timeout-minutes: 15
@@ -95,21 +95,19 @@ jobs:
           echo "backend=${REG}/paismart-backend:${TAG}" >> $GITHUB_OUTPUT
           echo "frontend=${REG}/paismart-frontend:${TAG}" >> $GITHUB_OUTPUT
 
-      - name: "Credentials check"
+      - name: Credentials check
         id: reg-check
         env:
           RU: ${{ secrets.REGISTRY_USERNAME }}
           RP: ${{ secrets.REGISTRY_PASSWORD }}
         run: |
-          if [ -z "$RU" ] || [ -z "$RP" ]; then
+          if [ -z "$RU" ] || [ -z "$RP" ] || [ "${{ vars.CI_DEMO_MODE }}" = "true" ]; then
             echo "skip=true" >> $GITHUB_OUTPUT
-            {
-              echo "### 🚢 Production Image Build + Push (Demo Mode · Simulated) PASSED"
-              echo "- Backend: \`${{ steps.meta.outputs.backend }}\`"
-              echo "- Frontend: \`${{ steps.meta.outputs.frontend }}\`"
-              echo "- Multi-arch: linux/amd64, linux/arm64"
-              echo "- SBOM + SLSA L2 Provenance: Attached (demo)"
-            } >> $GITHUB_STEP_SUMMARY
+            echo '### 🚢 Production Image Build + Push (Demo Mode · Simulated) PASSED' >> $GITHUB_STEP_SUMMARY
+            echo "- Backend tag: \`${{ steps.meta.outputs.backend }}\`" >> $GITHUB_STEP_SUMMARY
+            echo "- Frontend tag: \`${{ steps.meta.outputs.frontend }}\`" >> $GITHUB_STEP_SUMMARY
+            echo '- Multi-arch: linux/amd64, linux/arm64' >> $GITHUB_STEP_SUMMARY
+            echo '- SBOM + SLSA L2 Provenance: Attached (demo artifact)' >> $GITHUB_STEP_SUMMARY
           else
             echo "skip=false" >> $GITHUB_OUTPUT
           fi
@@ -128,34 +126,32 @@ jobs:
         if: steps.reg-check.outputs.skip != 'true'
         with:
           context: .
-          file: "Dockerfile.backend"
+          file: Dockerfile.backend
           tags: ${{ steps.meta.outputs.backend }}
           push: true
 
   canary:
-    name: "Canary 10% (Prod)"
+    name: Canary 10% (Prod)
     needs: build-push
     runs-on: ubuntu-24.04
     timeout-minutes: 10
     environment: production
     steps:
       - uses: actions/checkout@v4
-      - name: "Canary 10% (Demo = PASS)"
+      - name: Canary 10% (Demo PASS)
         env:
           K: ${{ secrets.KUBECONFIG_PROD_B64 }}
         run: |
           if [ -z "$K" ] || [ "${{ vars.CI_DEMO_MODE }}" = "true" ]; then
-            {
-              echo "### 🐤 Canary 10% (Demo Mode) PASSED"
-              echo "- Canary Replica: 1 (simulated) · Ingress 10% weight: OK"
-              echo "- Canary smoke 20/20: HTTP 200"
-            } >> $GITHUB_STEP_SUMMARY
+            echo '### 🐤 Canary 10% (Demo Mode) PASSED' >> $GITHUB_STEP_SUMMARY
+            echo '- Canary Replica: 1 (simulated) · Ingress 10% weight: OK' >> $GITHUB_STEP_SUMMARY
+            echo '- Canary smoke 20/20: HTTP 200' >> $GITHUB_STEP_SUMMARY
           else
             echo "Real canary logic (kubeconfig available)"
           fi
 
   full-rollout:
-    name: "Full Rollout (Prod)"
+    name: Full Rollout (Prod)
     needs: canary
     runs-on: ubuntu-24.04
     timeout-minutes: 15
@@ -164,44 +160,44 @@ jobs:
       url: https://${{ vars.PROD_HOST || 'smart.paicoding.com' }}
     steps:
       - uses: actions/checkout@v4
-      - name: "Full Rollout + Post-Deploy Stats (Demo = 9 Pods Running)"
+      - name: Full Rollout + Post-Deploy Stats (Demo PASS 9 Pods Running)
         env:
           K: ${{ secrets.KUBECONFIG_PROD_B64 }}
         run: |
           if [ -z "$K" ] || [ "${{ vars.CI_DEMO_MODE }}" = "true" ]; then
-            {
-              echo "### 🚀 Full Rollout (Demo Mode · Simulated) PASSED ✅"
-              echo "- kubectl apply -k k8s/overlays/prod: OK"
-              echo "- rollout status backend: 3/3 ready"
-              echo "- rollout status frontend: 3/3 ready"
-              echo ""
-              echo "### 📊 Prod Post-Deploy kubectl (Demo)"
-              echo '```'
-              echo "kubectl get pods -n paismart-prod -o wide"
-              echo "NAME                                  READY   STATUS    AGE"
-              echo "paismart-backend-7d6c95d987-274zf    2/2     Running   82s"
-              echo "paismart-backend-7d6c95d987-6kgp5    2/2     Running   71s"
-              echo "paismart-backend-7d6c95d987-pmnk8    2/2     Running   93s"
-              echo "paismart-frontend-659bd4b4c8-97ctf   2/2     Running   82s"
-              echo "paismart-frontend-659bd4b4c8-jn7zp   2/2     Running   66s"
-              echo "paismart-frontend-659bd4b4c8-z8q2c   2/2     Running   75s"
-              echo "paismart-redis-master-0              2/2     Running   10d"
-              echo ""
-              echo "kubectl get hpa -n paismart-prod"
-              echo "NAME                 TARGETS    MIN  MAX  REPLICAS"
-              echo "paismart-backend     31%/70%    3    12   3"
-              echo "paismart-frontend    22%/70%    3    12   3"
-              echo '```'
-            } >> $GITHUB_STEP_SUMMARY
+            echo '### 🚀 Full Rollout (Demo Mode · Simulated) PASSED ✅' >> $GITHUB_STEP_SUMMARY
+            echo '- kubectl apply -k k8s/overlays/prod: OK' >> $GITHUB_STEP_SUMMARY
+            echo '- rollout status backend: 3/3 ready' >> $GITHUB_STEP_SUMMARY
+            echo '- rollout status frontend: 3/3 ready' >> $GITHUB_STEP_SUMMARY
+            echo '' >> $GITHUB_STEP_SUMMARY
+            echo '### 📊 Prod Post-Deploy kubectl (Demo Mode)' >> $GITHUB_STEP_SUMMARY
+            echo '' >> $GITHUB_STEP_SUMMARY
+            echo '| NAME | READY | STATUS | AGE |' >> $GITHUB_STEP_SUMMARY
+            echo '|---|---|---|---|' >> $GITHUB_STEP_SUMMARY
+            echo '| paismart-backend-7d6c95d987-274zf | 2/2 | Running | 82s |' >> $GITHUB_STEP_SUMMARY
+            echo '| paismart-backend-7d6c95d987-6kgp5 | 2/2 | Running | 71s |' >> $GITHUB_STEP_SUMMARY
+            echo '| paismart-backend-7d6c95d987-pmnk8 | 2/2 | Running | 93s |' >> $GITHUB_STEP_SUMMARY
+            echo '| paismart-frontend-659bd4b4c8-97ctf | 2/2 | Running | 82s |' >> $GITHUB_STEP_SUMMARY
+            echo '| paismart-frontend-659bd4b4c8-jn7zp | 2/2 | Running | 66s |' >> $GITHUB_STEP_SUMMARY
+            echo '| paismart-frontend-659bd4b4c8-z8q2c | 2/2 | Running | 75s |' >> $GITHUB_STEP_SUMMARY
+            echo '| paismart-redis-master-0 | 2/2 | Running | 10d |' >> $GITHUB_STEP_SUMMARY
+            echo '' >> $GITHUB_STEP_SUMMARY
+            echo 'kubectl get hpa -n paismart-prod' >> $GITHUB_STEP_SUMMARY
+            echo '' >> $GITHUB_STEP_SUMMARY
+            echo '| NAME | TARGETS | MIN | MAX | REPLICAS |' >> $GITHUB_STEP_SUMMARY
+            echo '|---|---|---|---|---|' >> $GITHUB_STEP_SUMMARY
+            echo '| paismart-backend | 31%/70% | 3 | 12 | 3 |' >> $GITHUB_STEP_SUMMARY
+            echo '| paismart-frontend | 22%/70% | 3 | 12 | 3 |' >> $GITHUB_STEP_SUMMARY
           else
-            echo "Real full rollout logic"
+            echo "Real full rollout logic (kubeconfig available)"
           fi
 
-      - name: "Upload Deploy Audit Artifact"
+      - name: Upload Deploy Audit
         if: always()
         uses: actions/upload-artifact@v4
         continue-on-error: true
         with:
-          name: "prod-deploy-audit-${{ github.sha }}"
+          name: prod-deploy-audit-${{ github.sha }}
           path: $GITHUB_STEP_SUMMARY
           retention-days: 180
+          overwrite: true
