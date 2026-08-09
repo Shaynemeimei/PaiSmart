@@ -257,3 +257,23 @@ wx:
     payNotifyUrl: ${WX_PAY_NOTIFY_URL:https://smart.paicoding.com/api/v1/recharge/pay-callback}
     #退款通知地址
     refundNotifyUrl: ${WX_PAY_REFUND_NOTIFY_URL:https://smart.paicoding.com/api/v1/recharge/refund-callback}
+
+# ════════════════════════════════════════════════════════════
+# Actuator /actuator/info 端点暴露的版本审计信息（企业标准）
+# ════════════════════════════════════════════════════════════
+info:
+  app:
+    name: PaiSmart
+    version: ${INFO_APP_VERSION:v1.0.2-PROD}
+    release-date: ${INFO_APP_RELEASE_DATE:2026-08-09}
+    environment: ${INFO_APP_ENVIRONMENT:production}
+    build-number: ${GITHUB_RUN_NUMBER:local-dev}
+    commit-sha: ${GITHUB_SHA:HEAD}
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus
+  endpoint:
+    health:
+      show-details: when-authorized
