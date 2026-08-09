@@ -1,0 +1,75 @@
+---
+# 默认"拒绝所有入站流量"——每个 Deployment 通过 NetworkPolicy 显式放行
+# 遵循 Zero Trust 最小权限原则
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: default-deny-ingress
+  namespace: paismart
+spec:
+  podSelector: {}
+  policyTypes:
+    - Ingress
+---
+# 允许 Ingress Controller 命名空间的流量进入前端（根据你实际安装的 NS/标签改）
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-ingress-nginx-to-frontend
+  namespace: paismart
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/component: frontend
+  policyTypes:
+    - Ingress
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: ingress-nginx   # 若用 traefik/apisix，改对应 NS label
+      ports:
+        - protocol: TCP
+          port: 8080
+---
+# 允许前端 Pod → 后端 Pod（仅 8080，不允许直连其他端口 / 其他服务）
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-frontend-to-backend
+  namespace: paismart
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/component: backend
+  policyTypes:
+    - Ingress
+  ingress:
+    - from:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/component: frontend
+      ports:
+        - protocol: TCP
+          port: 8081
+---
+# 允许 Prometheus / Grafana 采集指标（从 monitoring 命名空间）
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-monitoring-scrape
+  namespace: paismart
+spec:
+  podSelector: {}
+  policyTypes:
+    - Ingress
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: monitoring
+      ports:
+        - protocol: TCP
+          port: 8081          # backend actuator/prometheus
+        - protocol: TCP
+          port: 8080          # frontend status

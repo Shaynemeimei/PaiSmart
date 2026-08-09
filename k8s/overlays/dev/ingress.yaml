@@ -1,0 +1,37 @@
+---
+# dev 环境 Ingress：无证书或自签；host 用 dev 子域名
+# 需要先在集群中安装：
+#   - ingress-nginx controller (helm upgrade --install ingress-nginx ingress-nginx/ingress-nginx --namespace ingress-nginx --create-namespace)
+#   - cert-manager (helm upgrade --install cert-manager jetstack/cert-manager --namespace cert-manager --create-namespace --version v1.16.1 --set installCRDs=true)
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: paismart-frontend-ingress
+  namespace: paismart-dev
+  annotations:
+    kubernetes.io/ingress.class: "nginx"
+    cert-manager.io/cluster-issuer: "letsencrypt-staging"   # 生产用 letsencrypt-prod
+    nginx.ingress.kubernetes.io/ssl-redirect: "false"        # dev 可以不强制 https
+    nginx.ingress.kubernetes.io/proxy-body-size: "50m"
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "3600"   # WS 长连接
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "3600"
+    nginx.ingress.kubernetes.io/configuration-snippet: |
+      proxy_set_header Upgrade $http_upgrade;
+      proxy_set_header Connection "upgrade";
+spec:
+  rules:
+    - host: dev-smart.paicoding.com
+      http:
+        paths:
+          # 所有流量走前端 Nginx（由前端再内部反代到后端 /api /ws）
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: paismart-frontend-dev
+                port:
+                  number: 8080
+  tls:
+    - hosts:
+        - dev-smart.paicoding.com
+      secretName: paismart-frontend-dev-tls

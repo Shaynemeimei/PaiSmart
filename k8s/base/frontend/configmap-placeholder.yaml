@@ -1,0 +1,14 @@
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: paismart-frontend-nginx
+  namespace: paismart
+  labels:
+    app.kubernetes.io/component: frontend
+    app.kubernetes.io/part-of: paismart
+data:
+  # 文件名必须与容器 CMD 中 envsubst < 路径一致
+  default.conf.template: |
+    # ---- 由 ConfigMap 注入；实际文件内容见同目录 nginx.conf ----
+    # （此处用 Kustomize 合并 nginx.conf 为 ConfigMap 更方便，见 k8s/base/frontend/kustomization.yaml）

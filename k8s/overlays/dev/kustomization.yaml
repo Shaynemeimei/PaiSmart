@@ -1,0 +1,60 @@
+---
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: paismart-dev
+nameSuffix: -dev
+
+resources:
+  - ../../base
+  - namespace.yaml
+  - ingress.yaml
+
+# 镜像替换：dev 用 commit sha / latest
+images:
+  - name: registry.paicoding.com/paismart/backend
+    newName: registry.paicoding.com/paismart/backend
+    newTag: "dev-latest"
+  - name: registry.paicoding.com/paismart/frontend
+    newName: registry.paicoding.com/paismart/frontend
+    newTag: "dev-latest"
+
+# 覆盖 replicas + 资源
+patches:
+  - path: backend-patch.yaml
+    target:
+      kind: Deployment
+      name: paismart-backend
+  - path: frontend-patch.yaml
+    target:
+      kind: Deployment
+      name: paismart-frontend
+  - path: hpa-patch.yaml
+    target:
+      kind: HorizontalPodAutoscaler
+      name: paismart-backend-hpa
+  - path: hpa-patch.yaml
+    target:
+      kind: HorizontalPodAutoscaler
+      name: paismart-frontend-hpa
+
+# ConfigMap 覆盖：dev 特殊配置
+configMapGenerator:
+  - name: paismart-backend-config
+    namespace: paismart-dev
+    behavior: merge
+    literals:
+      - LOG_LEVEL_APP=DEBUG
+      - SPRING_JPA_SHOW_SQL=true
+      - ELASTICSEARCH_INSECURE_TRUST_ALL_CERTIFICATES=true
+      - SECURITY_ALLOWED_ORIGINS=http://localhost:*,http://127.0.0.1:*,https://dev-smart.paicoding.com
+      - APP_DEBUG=true
+      - MANAGEMENT_TRACING_SAMPLING_PROBABILITY=1.0
+
+secretGenerator:
+  - name: paismart-backend-secrets
+    namespace: paismart-dev
+    behavior: replace
+    type: Opaque
+    envs:
+      - secrets.backend.env

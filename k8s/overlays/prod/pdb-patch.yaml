@@ -1,0 +1,8 @@
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: placeholder
+spec:
+  # 生产至少保证 66% 副本保活，配合 3 AZ + replicas=3 = 2 minAvailable
+  minAvailable: 2

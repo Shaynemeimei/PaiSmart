@@ -1,0 +1,19 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: paismart-backend
+spec:
+  replicas: 2
+  template:
+    spec:
+      containers:
+        - name: backend
+          # dev 给更少资源、更低 OOM 阈值方便发现内存泄漏
+          resources:
+            requests:
+              cpu: "500m"
+              memory: "1Gi"
+            limits:
+              cpu: "2"
+              memory: "2Gi"

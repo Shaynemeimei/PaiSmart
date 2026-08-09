@@ -1,0 +1,46 @@
+---
+# HPA：基于 CPU + 自定义指标（每秒 WS 并发 / Kafka lag 可选）
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: paismart-backend-hpa
+  namespace: paismart
+  labels:
+    app.kubernetes.io/component: backend
+    app.kubernetes.io/part-of: paismart
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: paismart-backend
+  minReplicas: 2
+  maxReplicas: 10
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 70
+    - type: Resource
+      resource:
+        name: memory
+        target:
+          type: Utilization
+          averageUtilization: 75
+  behavior:
+    scaleUp:
+      stabilizationWindowSeconds: 60
+      policies:
+        - type: Pods
+          value: 2
+          periodSeconds: 60
+        - type: Percent
+          value: 50
+          periodSeconds: 60
+    scaleDown:
+      stabilizationWindowSeconds: 300          # 5 分钟观察期，避免抖动
+      policies:
+        - type: Pods
+          value: 1
+          periodSeconds: 120

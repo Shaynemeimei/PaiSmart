@@ -1,0 +1,9 @@
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: paismart-prod
+  labels:
+    app.kubernetes.io/part-of: paismart
+    env: prod
+    pod-security.kubernetes.io/enforce: restricted

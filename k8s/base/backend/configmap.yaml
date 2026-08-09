@@ -1,0 +1,76 @@
+---
+# 后端非敏感配置：仅放主机地址/端口/功能开关等
+# 所有密钥 (MYSQL_PWD / JWT_SECRET / API_KEY / OCR_AK 等) 请用 Secret / SealedSecret / ExternalSecret，勿写此处
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: paismart-backend-config
+  namespace: paismart
+  labels:
+    app.kubernetes.io/component: backend
+    app.kubernetes.io/part-of: paismart
+data:
+  # Profile / Runtime
+  SPRING_PROFILES_ACTIVE: "docker"
+  APP_TIMEZONE: "Asia/Shanghai"
+  SERVER_PORT: "8081"
+  LOG_LEVEL_APP: "INFO"
+
+  # ---------------------------------------------------------------------
+  # 下游中间件 - 三选一：
+  #  A) 云托管（推荐生产）：改下面 VPC Private DNS / 内网 VIP
+  #  B) K8s 同集群 Operator：写 *.paismart-middleware.svc.cluster.local
+  #  C) 非 K8 VPC VM：写对应的 data-subnet 内部 IP / ALB
+  # ---------------------------------------------------------------------
+  # MySQL (建议用 RDS / PolarDB 托管，而非容器内 MySQL)
+  SPRING_DATASOURCE_URL: "jdbc:mysql://mysql-vpc.paicoding.private:3306/PaiSmart?useSSL=true&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=false"
+  SPRING_DATASOURCE_USERNAME: "paismart_app"
+
+  # Redis (托管版 / Redis Cluster)
+  SPRING_DATA_REDIS_HOST: "redis-vpc.paicoding.private"
+  SPRING_DATA_REDIS_PORT: "6379"
+
+  # Kafka (托管版 / Strimzi on K8s - 3 broker)
+  SPRING_KAFKA_BOOTSTRAP_SERVERS: "kafka-0.kafka-headless.paismart-middleware.svc.cluster.local:9092,kafka-1.kafka-headless.paismart-middleware.svc.cluster.local:9092,kafka-2.kafka-headless.paismart-middleware.svc.cluster.local:9092"
+  SPRING_KAFKA_TOPIC_PARTITIONS: "6"
+  SPRING_KAFKA_TOPIC_REPLICATION_FACTOR: "3"
+
+  # MinIO / OSS
+  MINIO_ENDPOINT: "https://minio-vpc.paicoding.private:9000"
+  MINIO_PUBLIC_URL: "https://minio.paicoding.com"
+  MINIO_BUCKET_NAME: "uploads"
+
+  # Elasticsearch (ECK / 阿里云 ES / AWS OpenSearch)
+  ELASTICSEARCH_HOST: "es-vpc.paicoding.private"
+  ELASTICSEARCH_PORT: "9200"
+  ELASTICSEARCH_SCHEME: "https"
+  ELASTICSEARCH_USERNAME: "paismart_reader_writer"
+  ELASTICSEARCH_INSECURE_TRUST_ALL_CERTIFICATES: "false"
+
+  # Security
+  SECURITY_ALLOWED_ORIGINS: "https://smart.paicoding.com,https://*.paicoding.com"
+  APP_AUTH_REGISTRATION_MODE: "INVITE_ONLY"
+  APP_AUTH_INVITE_REQUIRED: "true"
+
+  # File Parsing
+  FILE_PARSING_CHUNK_SIZE: "512"
+  FILE_PARSING_OVERLAP_SIZE: "100"
+  FILE_PARSING_LITEPARSE_OCR_ENABLED: "false"
+  FILE_PARSING_LITEPARSE_OCR_LANGUAGE: "chi_sim+eng"
+
+  # Quota
+  USAGE_QUOTA_USE_USER_TOKEN_BALANCE: "true"
+
+  # Actuator (expose endpoints for Prometheus scrape + k8s probes)
+  MANAGEMENT_ENDPOINTS_WEB_EXPOSURE_INCLUDE: "health,info,prometheus,metrics,loggers"
+  MANAGEMENT_ENDPOINT_HEALTH_SHOW_DETAILS: "when-authorized"
+  MANAGEMENT_ENDPOINT_HEALTH_PROBES_ENABLED: "true"
+  MANAGEMENT_HEALTH_DEFAULTS_ENABLED: "true"
+  MANAGEMENT_HEALTH_DB_ENABLED: "true"
+  MANAGEMENT_HEALTH_REDIS_ENABLED: "true"
+  MANAGEMENT_HEALTH_ELASTICSEARCH_ENABLED: "true"
+  MANAGEMENT_HEALTH_KAFKA_ENABLED: "true"
+
+  # Tracing (可选 - 接入 OTel Collector)
+  MANAGEMENT_OTLP_TRACING_ENDPOINT: "http://otel-collector.monitoring.svc.cluster.local:4317"
+  MANAGEMENT_TRACING_SAMPLING_PROBABILITY: "0.1"

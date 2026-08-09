@@ -1,0 +1,14 @@
+---
+# PaiSmart 专用 Namespace：所有业务资源放入此命名空间，避免与系统/监控冲突
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: paismart
+  labels:
+    app.kubernetes.io/part-of: paismart
+    pod-security.kubernetes.io/enforce: baseline
+    pod-security.kubernetes.io/audit: restricted
+    pod-security.kubernetes.io/warn: restricted
+  annotations:
+    owner: "platform-eng"
+    description: "PaiSmart RAG System - All application workloads"

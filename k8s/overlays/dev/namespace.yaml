@@ -1,0 +1,8 @@
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: paismart-dev
+  labels:
+    app.kubernetes.io/part-of: paismart
+    env: dev

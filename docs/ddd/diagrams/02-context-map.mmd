@@ -1,0 +1,87 @@
+%% PaiSmart Bounded Context Map
+%% 渲染后可直接放评审 PPT
+%% 说明：
+%%   [BC] 形状 = rectangle
+%%   关系颜色：
+%%     - 蓝色 C-S (Customer-Supplier, U 指向上游 Supplier)
+%%     - 绿色 Shared Kernel
+%%     - 紫色 ACL (防腐层, Downstream 使用)
+%%     - 橙色虚线 Domain Event Pub-Sub
+
+flowchart LR
+    classDef boundedContext fill:#F8FAFC,stroke:#475569,stroke-width:2px,color:#0F172A,rx:8,ry:8;
+    classDef sharedKernel fill:#ECFDF5,stroke:#059669,stroke-width:2px,stroke-dasharray:5 5,rx:12,ry:12;
+    classDef event fill:#FFF7ED,stroke:#EA580C,stroke-width:1px,stroke-dasharray:3 3,rx:6;
+
+    subgraph Legend [图例]
+      direction LR
+      L1[C-S: Customer-Supplier\nU=Upstream Supplier, D=Downstream Customer]:::event
+      L2[SK: Shared Kernel\n共享 VO + 基类]:::event
+      L3[ACL: Anti-Corruption Layer\n下游仅通过 Facade 接口调上游]:::event
+      L4[Event: Domain Event 发布订阅\n通常 Kafka / SpringEvent]:::event
+    end
+
+    %% Shared Kernel 底部贯穿
+    SK(SHARED KERNEL\nUserId · OrgTagId · FileMd5 · ChunkId\nConversationId · TokenAmount\nDomainEvent 基类 · Repository 接口\nDomainException):::sharedKernel
+
+    %% Bounded Contexts
+    IAM[[BC: Identity & Access\n\nUser · OrganizationTag\nInviteCode · RegistrationPolicy\nRepository 接口\nEvents: UserRegisteredEvent\nOrgTagChangedEvent]]:::boundedContext
+
+    KB[[BC: Knowledge Base\n\nFileUpload (AR)\n · UploadChunks\n · TextChunks\nFileProcessingTask\nEvents:\n FileUploadedAndMerged\n DocumentIndexedEvent\n FileDeletedEvent]]:::boundedContext
+
+    SEARCH[[BC: Search (读侧 CQRS)\n\nHybridSearchService\nAccessControlFilter (ACL→IAM)\nRankFusionPolicy\nReranker\n消费 KB 的索引事件]]:::boundedContext
+
+    CHAT[[BC: Chat & Conversation\n\nConversation (AR)\n · ConversationTurns\n · ReferenceMappings\nConversationSession (AR)\nGenerationTask (AR)\nRagCompositionPolicy\nDomain Services:\n ConversationOwnershipPolicy\n TokenBudgetPolicy\n RagFeedbackPolicy]]:::boundedContext
+
+    BILLING[[BC: Billing & Quota\n\nRechargePackage (AR)\nRechargeOrder (AR · 状态机)\nUserTokenAccount (AR · 乐观锁)\nUserTokenRecord 流水(只追加)\nEvents:\n PaymentSucceeded\n TokenBalanceChanged\n ReconciliationDiscrepancy]]:::boundedContext
+
+    ADMIN[[BC: System Admin\n\nRateLimitConfig (AR)\nModelProviderConfig (AR)\nAdminAuditLog (只追加)\nDomain Service:\n RateLimitEnforcer\n LlmModelRouter]]:::boundedContext
+
+    %% ======= Shared Kernel =======
+    SK -. Shared VO / Classes .- IAM
+    SK -. Shared VO / Classes .- KB
+    SK -. Shared VO / Classes .- SEARCH
+    SK -. Shared VO / Classes .- CHAT
+    SK -. Shared VO / Classes .- BILLING
+    SK -. Shared VO / Classes .- ADMIN
+
+    %% ======= Customer-Supplier =======
+    IAM -- U/D Customer-Supplier -->|"下游查 User/Org 信息"| CHAT
+    IAM -- U/D Customer-Supplier -->|"文件权限创建者"| KB
+    IAM -- U/D Customer-Supplier -->|"订单归属用户 + 充值用户"| BILLING
+    IAM -- U/D Customer-Supplier -->|"ADMIN 角色 + 操作人 ID"| ADMIN
+
+    KB -- U/D Customer-Supplier -->|"ES Chunk 写入 Schema"| SEARCH
+    KB -- U/D Customer-Supplier -->|"FileUpload ACL 元数据供检索后校验"| CHAT
+
+    ADMIN -- U/D Customer-Supplier -->|"RateLimitConfig 规则"| BILLING
+    ADMIN -- U/D Customer-Supplier -->|"LlmProviderRouter 选择模型"| CHAT
+
+    BILLING -- U/D Customer-Supplier -->|"余额查询 + 预扣费接口"| CHAT
+
+    %% ======= ACL (下游内部用) =======
+    CHAT -. ACL防腐层 .-|"内部 IdentityAclFacade (不直接 import User Entity)"| IAM
+    SEARCH -. ACL防腐层 .-|"内部 AccessControlFilter 拼 ES 过滤条件"| IAM
+    CHAT -. ACL防腐层 .-|"内部 BillingBalanceFacade (不直接 import Order Aggregate)"| BILLING
+    CHAT -. ACL防腐层 .-|"内部 ModelRouterFacade (只消费路由结果 DTO)"| ADMIN
+
+    %% ======= Domain Event Pub-Sub =======
+    KB --"◆ DocumentIndexedEvent\n(文档入库完成)"--> CHAT
+    KB --"◆ FileDeletedEvent\n(清理 ES + 权限引用)"--> SEARCH
+
+    CHAT --"◆ ChatTurnCompletedEvent\n(LLM 用量 + 轮次完成)"--> BILLING
+
+    BILLING --"◆ TokenBalanceChangedEvent\n(前端刷新余额显示)"--> CHAT
+    BILLING --"◆ PaymentSucceededEvent\n(发放权益 + 订单标记 DELIVERED)"--> BILLING
+    BILLING --"◆ DailyQuotaExhaustedEvent"--> CHAT
+
+    ADMIN --"◆ RateLimitConfigChangedEvent\n(清除 RateLimitService 本地缓存)"--> CHAT
+    ADMIN --"◆ ModelProviderConfigChangedEvent\n(刷新 LlmModelRouter 路由缓存)"--> CHAT
+
+    %% ========== 点击节点展开说明 (HTML 渲染可交互) ==========
+    click IAM "../02-IDENTITY-AND-KB-BC.md"
+    click KB  "../02-IDENTITY-AND-KB-BC.md"
+    click SEARCH "../03-SEARCH-AND-CHAT-BC.md"
+    click CHAT   "../03-SEARCH-AND-CHAT-BC.md"
+    click BILLING "../04-BILLING-AND-ADMIN-BC.md"
+    click ADMIN   "../04-BILLING-AND-ADMIN-BC.md"

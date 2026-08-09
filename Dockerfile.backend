@@ -1,0 +1,63 @@
+# syntax=docker/dockerfile:1.6
+###############################################################################
+# PaiSmart Backend - Multi-stage Dockerfile
+# Stage 1 : Maven build (jar)
+# Stage 2 : Slim JRE runtime (Eclipse Temurin JRE 17 Alpine slim)
+###############################################################################
+
+# =========================
+# Stage 1: Builder
+# =========================
+FROM maven:3.9-eclipse-temurin-17-jammy AS builder
+
+WORKDIR /build
+
+# Layer cache: copy pom first so dep layer is reused when pom unchanged
+COPY pom.xml ./
+RUN --mount=type=cache,target=/root/.m2,id=paismart-m2 \
+    mvn -q -B dependency:go-offline -DskipTests
+
+# Copy sources & build
+COPY src ./src
+COPY .java-version ./
+RUN --mount=type=cache,target=/root/.m2,id=paismart-m2 \
+    mvn -q -B -DskipTests clean package && \
+    cp target/SmartPAI-*.jar /app.jar && \
+    java -Djarmode=layertools -jar /app.jar extract --destination /layers
+
+# =========================
+# Stage 2: Runtime
+# =========================
+FROM eclipse-temurin:17-jre-alpine AS runtime
+
+# Non-root user + minimal deps
+RUN apk add --no-cache ca-certificates tzdata curl bash libstdc++ && \
+    addgroup -S spring && adduser -S spring -G spring && \
+    cp /usr/share/zoneinfo/Asia/Shanghai /etc/localtime && \
+    echo "Asia/Shanghai" > /etc/timezone
+
+# LiteParse binary (optional - mounted at runtime or bake in when available)
+# RUN curl -fsSL -o /usr/local/bin/lit <liteparse-release-url> && chmod +x /usr/local/bin/lit
+
+WORKDIR /app
+
+# Copy Spring Boot layered jars - maximises layer reuse
+COPY --from=builder /layers/dependencies/ ./
+COPY --from=builder /layers/spring-boot-loader/ ./
+COPY --from=builder /layers/snapshot-dependencies/ ./
+COPY --from=builder /layers/application/ ./
+
+USER spring:spring
+
+ENV TZ=Asia/Shanghai \
+    JAVA_OPTS="-XX:+UseG1GC -XX:MaxRAMPercentage=75.0 -XX:+ExitOnOutOfMemoryError -Dfile.encoding=UTF-8" \
+    SPRING_PROFILES_ACTIVE=docker \
+    SERVER_PORT=8081
+
+# Spring Boot Actuator endpoints for k8s probes (needs actuator on classpath - added via pom)
+HEALTHCHECK --interval=30s --timeout=5s --start-period=60s --retries=5 \
+    CMD curl -fsS http://127.0.0.1:8081/actuator/health/readiness || exit 1
+
+EXPOSE 8081
+
+ENTRYPOINT [ "sh", "-c", "exec java $JAVA_OPTS org.springframework.boot.loader.launch.JarLauncher" ]

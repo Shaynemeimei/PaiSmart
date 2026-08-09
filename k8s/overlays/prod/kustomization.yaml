@@ -1,0 +1,68 @@
+---
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: paismart-prod
+nameSuffix: -prod
+
+resources:
+  - ../../base
+  - namespace.yaml
+  - ingress.yaml
+
+images:
+  - name: registry.paicoding.com/paismart/backend
+    newName: registry.paicoding.com/paismart/backend
+    newTag: "1.3.13"     # 生产用精确 semver tag，不用 latest
+  - name: registry.paicoding.com/paismart/frontend
+    newName: registry.paicoding.com/paismart/frontend
+    newTag: "1.3.13"
+
+patches:
+  - path: backend-patch.yaml
+    target:
+      kind: Deployment
+      name: paismart-backend
+  - path: frontend-patch.yaml
+    target:
+      kind: Deployment
+      name: paismart-frontend
+  - path: hpa-backend-patch.yaml
+    target:
+      kind: HorizontalPodAutoscaler
+      name: paismart-backend-hpa
+  - path: hpa-frontend-patch.yaml
+    target:
+      kind: HorizontalPodAutoscaler
+      name: paismart-frontend-hpa
+  - path: pdb-patch.yaml
+    target:
+      kind: PodDisruptionBudget
+      name: paismart-backend-pdb
+  - path: pdb-patch.yaml
+    target:
+      kind: PodDisruptionBudget
+      name: paismart-frontend-pdb
+
+configMapGenerator:
+  - name: paismart-backend-config
+    namespace: paismart-prod
+    behavior: merge
+    literals:
+      - LOG_LEVEL_APP=WARN
+      - SPRING_JPA_SHOW_SQL=false
+      - SPRING_JPA_HIBERNATE_DDL_AUTO=validate
+      - ELASTICSEARCH_INSECURE_TRUST_ALL_CERTIFICATES=false
+      - SECURITY_ALLOWED_ORIGINS=https://smart.paicoding.com,https://www.paicoding.com
+      - USAGE_QUOTA_USE_USER_TOKEN_BALANCE=true
+      - WX_PAY_ENABLE=true
+      - MANAGEMENT_TRACING_SAMPLING_PROBABILITY=0.05
+
+# 注：生产密钥**必须**用 SealedSecret 提交到 Git，这里只放占位
+secretGenerator:
+  - name: paismart-backend-secrets
+    namespace: paismart-prod
+    behavior: replace
+    type: Opaque
+    envs:
+      - secrets.backend.env     # 此文件应本地存在但被 .gitignore，提交前替换成 SealedSecret

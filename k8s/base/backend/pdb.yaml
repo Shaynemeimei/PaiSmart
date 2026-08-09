@@ -1,0 +1,16 @@
+---
+# PDB：保证升级/维护期间 backend 至少保活 N-1 个副本（避免全部被驱逐）
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: paismart-backend-pdb
+  namespace: paismart
+  labels:
+    app.kubernetes.io/component: backend
+    app.kubernetes.io/part-of: paismart
+spec:
+  minAvailable: 1                    # 可换成 "50%"； replicas>=3 时建议写 2
+  selector:
+    matchLabels:
+      app.kubernetes.io/component: backend
+      app.kubernetes.io/part-of: paismart

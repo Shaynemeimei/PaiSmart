@@ -1,0 +1,15 @@
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: paismart-frontend-pdb
+  namespace: paismart
+  labels:
+    app.kubernetes.io/component: frontend
+    app.kubernetes.io/part-of: paismart
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/component: frontend
+      app.kubernetes.io/part-of: paismart

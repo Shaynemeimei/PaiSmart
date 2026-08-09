@@ -1,0 +1,9 @@
+---
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: __PLACEHOLDER__   # 由 kustomize 按 target 名分别匹配
+spec:
+  # dev 起步更小，降低成本
+  minReplicas: 1
+  maxReplicas: 4
