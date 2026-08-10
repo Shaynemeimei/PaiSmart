@@ -105,7 +105,7 @@
     "eslint-plugin-vue": "10.1.0",
     "kolorist": "1.8.0",
     "sass": "1.88.0",
-    "simple-git-hooks": "2.13.0",
+    "simple-git-hooks": "2.13.1",
     "tsx": "4.19.4",
     "typescript": "5.8.3",
     "unplugin-auto-import": "^19.2.0",
