@@ -93,7 +93,7 @@
     "@types/ws": "^8.18.1",
     "@unocss/eslint-config": "66.1.1",
     "@unocss/preset-icons": "66.1.1",
-    "@unocss/preset-uno": "66.1.1",
+    "@unocss/preset-uno": "66.7.5",
     "@unocss/transformer-directives": "66.1.1",
     "@unocss/transformer-variant-group": "66.1.1",
     "@unocss/vite": "66.1.1",
