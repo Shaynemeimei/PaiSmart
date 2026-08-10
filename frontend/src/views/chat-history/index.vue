@@ -68,7 +68,7 @@ async function getList() {
     <Teleport defer to="#header-extra">
       <div class="px-10">
         <NForm :model="params" label-placement="left" :show-feedback="false" inline>
-          <NFormItem label="用户">
+          <NFormItem label="USER">
             <TheSelect
               v-model:value="userId"
               url="admin/users/list"
