@@ -49,7 +49,7 @@ jobs:
           echo '- Ramp-up 0 → 10 VUs in 5s · Hold 20s · Ramp-down 10 → 0 in 5s' >> $GITHUB_STEP_SUMMARY
           echo '- HTTP 200: 3720 · HTTP 5xx: 0' >> $GITHUB_STEP_SUMMARY
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         continue-on-error: true
         with:
           name: load-test-report-${{ github.sha }}

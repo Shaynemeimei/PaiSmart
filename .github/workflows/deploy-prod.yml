@@ -212,7 +212,7 @@ jobs:
 
       - name: Upload Deploy Audit
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         continue-on-error: true
         with:
           name: prod-deploy-audit-${{ github.sha }}
