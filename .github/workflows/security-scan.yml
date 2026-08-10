@@ -76,7 +76,7 @@ jobs:
 
       - name: Upload Trivy Reports
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         continue-on-error: true
         with:
           name: security-scan-reports-${{ github.sha }}
