@@ -154,15 +154,15 @@ const tokenRecordColumns = computed(() => [
     width: 100,
     render: (row: Api.User.TokenRecord) => {
       const typeMap: Record<string, { text: string; type: any }> = {
-        INCREASE: { text: '充值', type: 'success' },
-        CONSUME: { text: '消耗', type: 'warning' }
+        INCREASE: { text: 'charge', type: 'success' },
+        CONSUME: { text: 'cost', type: 'warning' }
       };
       const type = typeMap[row.changeType] || { text: row.changeType, type: 'default' };
       return h(NTag, { type: type.type }, () => type.text);
     }
   },
   {
-    title: '变动数量',
+    title: 'changing amount',
     key: 'amount',
     width: 120,
     render: (row: Api.User.TokenRecord) => {
