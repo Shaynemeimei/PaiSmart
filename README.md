@@ -212,11 +212,10 @@ cd frontend && pnpm install && pnpm dev              # http://localhost:9527
 | 7 | Deploy Production | after E2E green / manual | Production gates below → build & push image → Canary 10% → review → full rollout → post-deploy checks |
 
 ### Production Release Gates
-1.  **Change Freeze**：By default, releases are blocked after Friday 17:00 Asia/Shanghai and on weekends. The `CI_DEMO_MODE=true` variable skips the gate for rehearsals only.
-2.  **Environment Protection**: The `production` GitHub Environment enforces Required Reviewers and a Wait Timer so releases require explicit human approval followed by a cooldown window before full rollout.
-3.  **Secrets Completeness**: Registry credentials and production cluster kubeconfig must exist or the pipeline aborts.
-4.  **Canary Rollout**: Release begins at 10% traffic for 5 minutes; only if error rates and crash rates stay within thresholds does traffic flip to 100%.
-5.  **Post-deploy Validation**: kubectl verifies all workloads report the expected Pod Ready count, HPA configuration, and workload revision consistency.
+1.  **Environment Protection**: The `production` GitHub Environment enforces Required Reviewers and a Wait Timer so releases require explicit human approval followed by a cooldown window before full rollout.
+2.  **Secrets Completeness**: Registry credentials and production cluster kubeconfig must exist or the pipeline aborts.
+3.  **Canary Rollout**: Release begins at 10% traffic for 5 minutes; only if error rates and crash rates stay within thresholds does traffic flip to 100%.
+4.  **Post-deploy Validation**: kubectl verifies all workloads report the expected Pod Ready count, HPA configuration, and workload revision consistency.
 
 ### Deployment Target
 Kubernetes with two namespaces, Staging and Production. Default production configuration is Backend × 3 + Frontend × 3 with HPA scaling between 3 and 12 replicas at 70% CPU target. To trigger a real release against a private image registry and live cluster, set repository secrets `REGISTRY_USERNAME`, `REGISTRY_PASSWORD`, and `KUBECONFIG_PROD_B64`.
