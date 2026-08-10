@@ -37,7 +37,7 @@ RUN --mount=type=cache,target=/root/.local/share/pnpm/store,id=paismart-pnpm \
 # =========================
 # Stage 2: Nginx runtime (brotli + gzip precompressed)
 # =========================
-FROM nginx:1.27-alpine AS runtime
+FROM nginx:1.31-alpine AS runtime
 
 # Brotli static module pre-built (optional - use standard nginx + gzip for simplicity)
 RUN apk add --no-cache ca-certificates tzdata curl brotli && \
