@@ -127,16 +127,16 @@ const handlePageChange = (page: number) => {
   getTokenRecords();
 };
 
-// Token 记录表格列定义
+// Token 
 const tokenRecordColumns = computed(() => [
   {
-    title: '日期',
+    title: 'date',
     key: 'recordDate',
     width: 100,
     render: (row: Api.User.TokenRecord) => row.recordDate
   },
   {
-    title: 'Token 类型',
+    title: 'Token type',
     key: 'tokenType',
     width: 100,
     render: (row: Api.User.TokenRecord) => {
@@ -149,7 +149,7 @@ const tokenRecordColumns = computed(() => [
     }
   },
   {
-    title: '变动类型',
+    title: 'changetype',
     key: 'changeType',
     width: 100,
     render: (row: Api.User.TokenRecord) => {
