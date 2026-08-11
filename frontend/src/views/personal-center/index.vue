@@ -171,19 +171,19 @@ const tokenRecordColumns = computed(() => [
     }
   },
   {
-    title: '变动前余额',
+    title: 'before_amount
     key: 'balanceBefore',
     width: 120,
     render: (row: Api.User.TokenRecord) => row.balanceBefore?.toLocaleString() || '-'
   },
   {
-    title: '变动后余额',
+    title: 'after_amount',
     key: 'balanceAfter',
     width: 120,
     render: (row: Api.User.TokenRecord) => row.balanceAfter?.toLocaleString() || '-'
   },
   {
-    title: '原因',
+    title: 'reason',
     key: 'reason',
     minWidth: 100,
     ellipsis: { tooltip: true },
